@@ -1,0 +1,128 @@
+---
+title: "Create Connector"
+description: "Create a connector to sync data from a third-party provider."
+---
+
+## When to use it
+
+Create a connector when you want HydraDB to automatically sync data from an external provider like Slack. The connector stores credentials and handles authentication for subsequent operations.
+
+## Endpoint
+
+`POST /v2/connectors`
+
+- **Auth:** Bearer token (session or API key)
+- **Idempotency:** No – creates a new connector each time
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "slack",
+    "tenant_id": "my_tenant",
+    "auth_type": "api_token",
+    "credentials": {
+      "api_token": "xoxb-your-slack-bot-token"
+    },
+    "sync_interval_seconds": 1800
+  }'
+```
+</CodeGroup>
+
+## Request parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `provider` | string | Yes | Provider type. Currently `slack`. |
+| `tenant_id` | string | Yes | Tenant to sync data into. |
+| `sub_tenant_id` | string | No | Sub-tenant scope. Defaults to tenant default. |
+| `auth_type` | string | No | Authentication type: `api_token`, `client_secret`, or `static_bundle`. Defaults based on credentials. |
+| `credentials` | object | Yes | Provider credentials. See [Credentials](#credentials) below. |
+| `sync_interval_seconds` | integer | No | Seconds between automatic syncs. Default: `1800` (30 minutes). |
+| `provider_account_scope` | string | No | Optional scope identifier for the provider account. |
+| `deployment_id` | string | No | Optional deployment association. |
+| `plan` | string | No | Optional plan identifier. |
+
+### Credentials
+
+The credentials object varies by `auth_type`:
+
+**`api_token`** (default for Slack):
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `api_token` | string | Yes | API token or bot token |
+
+**`client_secret`**:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `client_id` | string | Yes | OAuth client ID |
+| `client_secret` | string | Yes | OAuth client secret |
+
+**`static_bundle`**:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `api_token` | string | Conditional | Static token |
+| `access_token` | string | Conditional | Alternative token field |
+| `auth_header` | string | Conditional | Pre-formatted auth header |
+| `client_secret` | string | Conditional | Client secret if needed |
+
+At least one of `api_token`, `access_token`, `auth_header`, or `client_secret` must be provided.
+
+## Response
+
+```json
+{
+  "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "user_abc123",
+  "org_id": "org_xyz789",
+  "tenant_id": "my_tenant",
+  "sub_tenant_id": "",
+  "provider": "slack",
+  "provider_account_scope": "",
+  "auth_type": "api_token",
+  "status": "active",
+  "credential_ref": "550e8400-e29b-41d4-a716-446655440000",
+  "next_sync_at": "2026-05-29T13:00:00Z",
+  "sync_interval_seconds": 1800,
+  "deployment_id": "",
+  "plan": ""
+}
+```
+
+| Field | Description |
+|---|---|
+| `connector_id` | Unique identifier for the connector |
+| `status` | Connector status, initially `active` |
+| `next_sync_at` | Scheduled time for next automatic sync |
+| `sync_interval_seconds` | Configured sync interval |
+
+## Behavior notes
+
+<Info>
+**Credentials are encrypted.** Connector credentials are stored in AWS Secrets Manager and never returned in API responses.
+</Info>
+
+<Info>
+**Automatic syncs start immediately.** After creation, the connector schedules its first sync based on `next_sync_at`. Use [Trigger Sync](/api-reference/endpoint/trigger-connector-sync) to run a sync immediately.
+</Info>
+
+## Related endpoints
+
+- **Next:** [Discover Channels](/api-reference/endpoint/discover-channels) – find resources to sync
+- **Next:** [Create Resource](/api-reference/endpoint/create-connector-resource) – add resources
+- **Related:** [Delete Connector](/api-reference/endpoint/delete-connector) – teardown
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `400` | Invalid parameters or missing required fields |
+| `401` | Invalid or missing authentication |
+| `503` | Credential store not configured |

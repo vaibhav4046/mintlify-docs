@@ -1,0 +1,103 @@
+---
+title: "Discover Channels"
+description: "Discover available resources (channels) for a connector."
+---
+
+## When to use it
+
+After creating a connector, use discover to list available resources you can sync. For Slack connectors, this returns channels the bot token has access to.
+
+## Endpoint
+
+`GET /v2/connectors/:id/discover`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/discover' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+
+## Response
+
+```json
+{
+  "channels": [
+    {
+      "id": "C01ABC123",
+      "name": "general",
+      "is_private": false,
+      "is_member": true,
+      "num_members": 42
+    },
+    {
+      "id": "C02DEF456",
+      "name": "engineering",
+      "is_private": false,
+      "is_member": true,
+      "num_members": 15
+    },
+    {
+      "id": "G03GHI789",
+      "name": "private-team",
+      "is_private": true,
+      "is_member": true,
+      "num_members": 5
+    }
+  ]
+}
+```
+
+| Field | Description |
+|---|---|
+| `channels` | Array of discoverable channels |
+| `channels[].id` | Slack channel ID (use as `resource_id` when creating resources) |
+| `channels[].name` | Channel name |
+| `channels[].is_private` | Whether the channel is private |
+| `channels[].is_member` | Whether the bot is a member of the channel |
+| `channels[].num_members` | Number of members in the channel |
+
+## Required Slack scopes
+
+The discover endpoint uses the connector's stored token to query Slack. The token must have these scopes:
+
+| Scope | Required for |
+|---|---|
+| `channels:read` | Listing public channels |
+| `groups:read` | Listing private channels |
+
+<Note>
+**Private channels require bot membership.** The bot must be invited to private channels before they appear in the discover response. Use `/invite @your-bot-name` in Slack.
+</Note>
+
+## Behavior notes
+
+<Info>
+**Only accessible channels are returned.** The discover endpoint inspects the token's granted scopes and only requests channel types the token has permission to list.
+</Info>
+
+If the token lacks both `channels:read` and `groups:read`, the endpoint returns an error explaining which scope to add.
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `404` | Connector not found |
+| `500` | Failed to load or parse credentials |
+| `502` | Provider API error (check the error message for details) |
+| `503` | Credential store or channel discovery not configured |
+
+## Related endpoints
+
+- **Next:** [Create Resource](/api-reference/endpoint/create-connector-resource) – add channels to sync
+- **Previous:** [Create Connector](/api-reference/endpoint/create-connector) – set up the connector first

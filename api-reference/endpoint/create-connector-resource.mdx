@@ -1,0 +1,113 @@
+---
+title: "Create Connector Resource"
+description: "Add a resource to sync for a connector."
+---
+
+## When to use it
+
+After discovering available resources, create a resource to start syncing data from it. For Slack, each channel you want to sync is a separate resource.
+
+## Endpoint
+
+`POST /v2/connectors/:id/resources`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resource_id": "C01ABC123",
+    "resource_type": "channel",
+    "display_name": "general"
+  }'
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+
+## Request parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `resource_id` | string | Yes | Provider-specific identifier. For Slack, use the channel ID from discover. |
+| `resource_type` | string | No | Type of resource. For Slack, use `channel`. |
+| `display_name` | string | No | Human-readable name for the resource. |
+| `tenant_id_override` | string | No | Override the connector's tenant for this resource's data. |
+| `sub_tenant_id_override` | string | No | Override the connector's sub-tenant for this resource's data. |
+| `provider_metadata` | object | No | Provider-specific metadata to store with the resource. |
+| `filters` | object | No | Filters that affect sync behavior. See [Filters](#filters). |
+
+### Filters
+
+Filters customize how data is synced for this resource.
+
+| Filter | Type | Description |
+|---|---|---|
+| `lookback_days` | integer | For initial sync, how many days of history to fetch. Default: `30`. |
+
+**Example with custom lookback:**
+
+```json
+{
+  "resource_id": "C01ABC123",
+  "resource_type": "channel",
+  "display_name": "general",
+  "filters": {
+    "lookback_days": 7
+  }
+}
+```
+
+## Response
+
+```json
+{
+  "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+  "resource_id": "C01ABC123",
+  "resource_type": "channel",
+  "display_name": "general",
+  "status": "active",
+  "provider_cursor": "",
+  "tenant_id_override": "",
+  "sub_tenant_id_override": "",
+  "provider_metadata": null,
+  "filters": null
+}
+```
+
+| Field | Description |
+|---|---|
+| `status` | Initially `active` |
+| `provider_cursor` | Empty until the first sync runs |
+
+## Behavior notes
+
+<Info>
+**Resources sync on the connector's schedule.** After creating a resource, it will be included in the next scheduled sync. Use [Trigger Sync](/api-reference/endpoint/trigger-connector-sync) to sync immediately.
+</Info>
+
+<Info>
+**Each resource tracks its own cursor.** Sync progress is independent per resource, so adding a new resource doesn't affect existing ones.
+</Info>
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `400` | Invalid parameters or missing `resource_id` |
+| `404` | Connector not found |
+
+## Related endpoints
+
+- **Previous:** [Discover Channels](/api-reference/endpoint/discover-channels) – find resource IDs
+- **Next:** [Trigger Sync](/api-reference/endpoint/trigger-connector-sync) – start syncing
+- **Related:** [Delete Resource](/api-reference/endpoint/delete-connector-resource) – remove a resource

@@ -1,0 +1,286 @@
+---
+title: "Connectors"
+description: "Automatically sync data from third-party applications like Slack, enabling continuous ingestion without custom integration code."
+---
+
+Connectors let you sync data from third-party applications directly into HydraDB. Configure a connector once, and HydraDB handles authentication, pagination, and incremental syncing.
+
+Use connectors when you want to:
+
+- Ingest Slack messages from selected channels automatically
+- Keep HydraDB in sync with external data sources on a schedule
+- Avoid writing custom polling or webhook infrastructure
+
+<Info>
+Connectors are currently in early access. Slack is the first supported provider, with more providers coming soon.
+</Info>
+
+---
+
+## How connectors work
+
+A connector is a link between HydraDB and an external application. You provide credentials (an API token or OAuth secret), select which resources to sync (such as Slack channels), and HydraDB handles the rest.
+
+```mermaid
+flowchart LR
+  A[Create Connector] --> B[Add Credentials]
+  B --> C[Discover Resources]
+  C --> D[Create Resources]
+  D --> E[Sync Runs]
+  E --> F[Data in HydraDB]
+
+  style A fill:#0f172a,stroke:#334155,stroke-width:2px,color:#f8fafc
+  style B fill:#0f172a,stroke:#334155,stroke-width:2px,color:#f8fafc
+  style C fill:#4c1d95,stroke:#8b5cf6,stroke-width:2px,color:#ffffff
+  style D fill:#0f172a,stroke:#334155,stroke-width:2px,color:#f8fafc
+  style E fill:#0f172a,stroke:#334155,stroke-width:2px,color:#f8fafc
+  style F fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc
+```
+
+Each connector has:
+
+| Component | Description |
+|---|---|
+| **Provider** | The external application, such as Slack |
+| **Credentials** | Authentication for the provider (API token, OAuth, or client secret) |
+| **Resources** | Individual data sources within the provider, such as specific Slack channels |
+| **Sync schedule** | How often HydraDB pulls new data (default: 30 minutes) |
+
+---
+
+## Connector vs app sources
+
+Connectors and [app sources](/essentials/app-sources) serve different purposes:
+
+| Approach | When to use |
+|---|---|
+| **Connectors** | HydraDB pulls data automatically from a supported provider |
+| **App sources** | You push data to HydraDB from your own backend or a provider we don't yet support |
+
+Connectors produce app-source records internally. Once synced, connector data is searchable via `search_apps: true` just like manually ingested app sources.
+
+---
+
+## Setting up a Slack connector
+
+Slack is the first supported connector provider. Here's how to set it up:
+
+### 1. Create a Slack app
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) and create a new app.
+2. Under **OAuth & Permissions**, add these bot token scopes:
+
+| Scope | Purpose |
+|---|---|
+| `channels:read` | List public channels |
+| `channels:history` | Read messages from public channels |
+| `groups:read` | List private channels the bot is in |
+| `groups:history` | Read messages from private channels |
+
+3. Install the app to your workspace.
+4. Copy the **Bot User OAuth Token** (starts with `xoxb-`).
+
+### 2. Create the connector
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "slack",
+    "tenant_id": "my_tenant",
+    "auth_type": "api_token",
+    "credentials": {
+      "api_token": "xoxb-your-slack-bot-token"
+    }
+  }'
+```
+
+The response includes a `connector_id` you'll use for subsequent calls.
+
+### 3. Discover available channels
+
+Before adding resources, discover which channels the bot can access:
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "channels": [
+    {
+      "id": "C01ABC123",
+      "name": "general",
+      "is_private": false,
+      "is_member": true,
+      "num_members": 42
+    },
+    {
+      "id": "C02DEF456",
+      "name": "engineering",
+      "is_private": false,
+      "is_member": true,
+      "num_members": 15
+    }
+  ]
+}
+```
+
+<Note>
+The bot must be a member of private channels to see them in the discover response. Invite the bot to any private channels you want to sync.
+</Note>
+
+### 4. Add channels as resources
+
+For each channel you want to sync, create a resource:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resource_id": "C01ABC123",
+    "resource_type": "channel",
+    "display_name": "general"
+  }'
+```
+
+### 5. Trigger the first sync
+
+Connectors sync automatically on schedule, but you can trigger an immediate sync:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "workflow_id": "connector-sync-abc123",
+  "run_id": "run-xyz789"
+}
+```
+
+---
+
+## Sync behavior
+
+### Initial sync lookback
+
+On the first sync, HydraDB fetches messages from the last 30 days by default. You can customize this with a filter when creating the resource:
+
+```json
+{
+  "resource_id": "C01ABC123",
+  "resource_type": "channel",
+  "display_name": "general",
+  "filters": {
+    "lookback_days": 7
+  }
+}
+```
+
+### Incremental syncs
+
+After the initial sync, HydraDB tracks a cursor for each resource. Subsequent syncs fetch only new messages since the last run.
+
+### Sync interval
+
+The default sync interval is 30 minutes. You can set a custom interval (in seconds) when creating the connector:
+
+```json
+{
+  "provider": "slack",
+  "tenant_id": "my_tenant",
+  "sync_interval_seconds": 3600,
+  "credentials": { ... }
+}
+```
+
+---
+
+## Authentication types
+
+Connectors support three authentication types:
+
+| Type | When to use |
+|---|---|
+| `api_token` | Single token authentication (Slack bot tokens, API keys) |
+| `client_secret` | OAuth client credentials flow |
+| `static_bundle` | Multiple credential fields together |
+
+For Slack, use `api_token` with the bot token.
+
+---
+
+## Querying connector data
+
+Once synced, connector data appears in recall results when you include `search_apps: true`:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/recall/full_recall' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tenant_id": "my_tenant",
+    "query": "What did the team discuss about the auth rollback?",
+    "search_apps": true
+  }'
+```
+
+Slack messages from connectors use `kind: "message"` and `provider: "slack"`, so you can filter by provider in your queries.
+
+---
+
+## Managing connectors
+
+### List connectors
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+### Get connector details
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+### List resources
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+### Delete a resource
+
+```bash cURL
+curl -X DELETE 'https://api.hydradb.com/v2/connectors/<connector_id>/resources/<resource_id>' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+### Delete a connector
+
+Deleting a connector removes all its resources and credentials:
+
+```bash cURL
+curl -X DELETE 'https://api.hydradb.com/v2/connectors/<connector_id>' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+---
+
+## Related
+
+- [API Reference: Connectors](/api-reference/endpoint/connectors-overview) - Full endpoint reference
+- [App Sources](/essentials/app-sources) - Manual app data ingestion
+- [Recall](/essentials/recall) - Querying your data

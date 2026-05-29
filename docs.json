@@ -35,6 +35,7 @@
               "essentials/memories",
               "essentials/knowledge",
               "essentials/app-sources",
+              "essentials/connectors",
               "essentials/recall",
               "essentials/webhooks",
               "essentials/multi-tenant",
@@ -146,6 +147,21 @@
               "api-reference/endpoint/search-raw-embeddings",
               "api-reference/endpoint/filter-raw-embeddings",
               "api-reference/endpoint/delete-raw-embeddings"
+            ]
+          },
+          {
+            "group": "Connectors",
+            "pages": [
+              "api-reference/endpoint/connectors-overview",
+              "api-reference/endpoint/create-connector",
+              "api-reference/endpoint/list-connectors",
+              "api-reference/endpoint/get-connector",
+              "api-reference/endpoint/delete-connector",
+              "api-reference/endpoint/discover-channels",
+              "api-reference/endpoint/trigger-connector-sync",
+              "api-reference/endpoint/list-connector-resources",
+              "api-reference/endpoint/create-connector-resource",
+              "api-reference/endpoint/delete-connector-resource"
             ]
           }
         ]

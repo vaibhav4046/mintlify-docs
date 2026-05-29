@@ -1,0 +1,83 @@
+---
+title: "Trigger Connector Sync"
+description: "Trigger an immediate sync for a connector."
+---
+
+## When to use it
+
+Trigger a manual sync when you want data pulled immediately instead of waiting for the next scheduled sync. Useful after adding new resources or when you need fresh data.
+
+## Endpoint
+
+`POST /v2/connectors/:id/sync`
+
+- **Auth:** Bearer token (session or API key)
+- **Async:** Yes – returns workflow identifiers, sync runs in the background
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/sync' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+
+## Response
+
+```json
+{
+  "workflow_id": "connector-sync-550e8400-e29b-41d4-a716-446655440000-manual-1716984000",
+  "run_id": "run-abc123xyz789"
+}
+```
+
+| Field | Description |
+|---|---|
+| `workflow_id` | Unique identifier for the sync workflow |
+| `run_id` | Specific run identifier within the workflow |
+
+## Behavior notes
+
+<Info>
+**Syncs run asynchronously.** The endpoint returns immediately with workflow identifiers. The actual sync runs in the background and may take time depending on the amount of data.
+</Info>
+
+<Info>
+**Syncs are incremental.** After the initial sync, only new data since the last sync is fetched. Each resource tracks its own cursor.
+</Info>
+
+### Initial sync lookback
+
+On the first sync for a resource, HydraDB fetches data from the last 30 days by default. You can customize this when creating the resource:
+
+```json
+{
+  "resource_id": "C01ABC123",
+  "filters": {
+    "lookback_days": 7
+  }
+}
+```
+
+### Concurrent resource processing
+
+The sync workflow processes multiple resources concurrently (up to 3 at a time) for faster completion.
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `404` | Connector not found |
+| `503` | Sync trigger not configured |
+
+## Related endpoints
+
+- [Create Resource](/api-reference/endpoint/create-connector-resource) – add resources before syncing
+- [List Resources](/api-reference/endpoint/list-connector-resources) – check which resources are configured

@@ -1,0 +1,63 @@
+---
+title: "Delete Connector"
+description: "Delete a connector and all its resources."
+---
+
+## When to use it
+
+Remove a connector when you no longer want to sync data from the provider. This deletes all associated resources and credentials.
+
+## Endpoint
+
+`DELETE /v2/connectors/:id`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+
+## Response
+
+```json
+{
+  "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+  "deleted": true
+}
+```
+
+| Field | Description |
+|---|---|
+| `connector_id` | The deleted connector's ID |
+| `deleted` | Always `true` on success |
+
+## Behavior notes
+
+<Warning>
+**Deleting a connector also deletes all its resources.** This stops syncing for all channels or data sources configured under the connector. Previously synced data remains in HydraDB.
+</Warning>
+
+<Info>
+**Credentials are permanently removed.** The connector's credentials are deleted from the secret store.
+</Info>
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `404` | Connector not found or belongs to a different organization |
+
+## Related endpoints
+
+- [Delete Resource](/api-reference/endpoint/delete-connector-resource) – remove a single resource without deleting the connector

@@ -1,0 +1,79 @@
+---
+title: "List Connector Resources"
+description: "List all resources configured for a connector."
+---
+
+## When to use it
+
+Check which resources (channels, data sources) are configured to sync for a connector.
+
+## Endpoint
+
+`GET /v2/connectors/:id/resources`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+
+## Response
+
+```json
+{
+  "resources": [
+    {
+      "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+      "resource_id": "C01ABC123",
+      "resource_type": "channel",
+      "display_name": "general",
+      "status": "active",
+      "provider_cursor": "1716984000.000100",
+      "tenant_id_override": "",
+      "sub_tenant_id_override": "",
+      "provider_metadata": null,
+      "filters": null
+    },
+    {
+      "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+      "resource_id": "C02DEF456",
+      "resource_type": "channel",
+      "display_name": "engineering",
+      "status": "active",
+      "provider_cursor": "1716980400.000050",
+      "tenant_id_override": "",
+      "sub_tenant_id_override": "",
+      "provider_metadata": null,
+      "filters": {
+        "lookback_days": 7
+      }
+    }
+  ]
+}
+```
+
+| Field | Description |
+|---|---|
+| `resources` | Array of resource objects |
+| `resource_id` | Provider-specific identifier (e.g., Slack channel ID) |
+| `resource_type` | Type of resource (e.g., `channel`) |
+| `display_name` | Human-readable name |
+| `status` | Resource status, typically `active` |
+| `provider_cursor` | Sync cursor tracking the last synced position |
+| `filters` | Optional filters configured for this resource |
+
+## Related endpoints
+
+- [Create Resource](/api-reference/endpoint/create-connector-resource) – add a new resource
+- [Delete Resource](/api-reference/endpoint/delete-connector-resource) – remove a resource

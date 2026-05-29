@@ -1,0 +1,59 @@
+---
+title: "List Connectors"
+description: "List all connectors for your organization."
+---
+
+## When to use it
+
+Retrieve all connectors configured for your organization to see their status and configuration.
+
+## Endpoint
+
+`GET /v2/connectors`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Response
+
+```json
+{
+  "connectors": [
+    {
+      "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_id": "user_abc123",
+      "org_id": "org_xyz789",
+      "tenant_id": "my_tenant",
+      "sub_tenant_id": "",
+      "provider": "slack",
+      "provider_account_scope": "",
+      "auth_type": "api_token",
+      "status": "active",
+      "credential_ref": "550e8400-e29b-41d4-a716-446655440000",
+      "next_sync_at": "2026-05-29T13:00:00Z",
+      "sync_interval_seconds": 1800,
+      "deployment_id": "",
+      "plan": ""
+    }
+  ]
+}
+```
+
+| Field | Description |
+|---|---|
+| `connectors` | Array of connector objects |
+
+See [Create Connector](/api-reference/endpoint/create-connector) for connector field descriptions.
+
+## Related endpoints
+
+- [Get Connector](/api-reference/endpoint/get-connector) – get details for a specific connector
+- [Create Connector](/api-reference/endpoint/create-connector) – add a new connector

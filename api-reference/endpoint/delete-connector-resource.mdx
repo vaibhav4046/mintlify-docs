@@ -1,0 +1,68 @@
+---
+title: "Delete Connector Resource"
+description: "Remove a resource from a connector."
+---
+
+## When to use it
+
+Remove a resource when you no longer want to sync data from it. For example, stop syncing a Slack channel you no longer need.
+
+## Endpoint
+
+`DELETE /v2/connectors/:id/resources/:resource_id`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/resources/C01ABC123' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+| `resource_id` | string | Yes | The resource ID to delete |
+
+## Response
+
+```json
+{
+  "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+  "resource_id": "C01ABC123",
+  "deleted": true
+}
+```
+
+| Field | Description |
+|---|---|
+| `connector_id` | The connector's ID |
+| `resource_id` | The deleted resource's ID |
+| `deleted` | Always `true` on success |
+
+## Behavior notes
+
+<Info>
+**Previously synced data remains.** Deleting a resource stops future syncs but does not delete data already in HydraDB.
+</Info>
+
+<Info>
+**The resource can be re-added.** If you delete and re-create a resource, the next sync will use the default lookback window since the cursor is lost.
+</Info>
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `404` | Connector not found |
+| `500` | Failed to delete resource |
+
+## Related endpoints
+
+- [Delete Connector](/api-reference/endpoint/delete-connector) – remove the entire connector
+- [Create Resource](/api-reference/endpoint/create-connector-resource) – add a resource back

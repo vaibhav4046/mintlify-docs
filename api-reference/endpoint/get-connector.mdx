@@ -1,0 +1,63 @@
+---
+title: "Get Connector"
+description: "Get details for a specific connector."
+---
+
+## When to use it
+
+Retrieve the current configuration and status of a specific connector.
+
+## Endpoint
+
+`GET /v2/connectors/:id`
+
+- **Auth:** Bearer token (session or API key)
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+</CodeGroup>
+
+## Path parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | The connector ID |
+
+## Response
+
+```json
+{
+  "connector_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "user_abc123",
+  "org_id": "org_xyz789",
+  "tenant_id": "my_tenant",
+  "sub_tenant_id": "",
+  "provider": "slack",
+  "provider_account_scope": "",
+  "auth_type": "api_token",
+  "status": "active",
+  "credential_ref": "550e8400-e29b-41d4-a716-446655440000",
+  "next_sync_at": "2026-05-29T13:00:00Z",
+  "sync_interval_seconds": 1800,
+  "deployment_id": "",
+  "plan": ""
+}
+```
+
+See [Create Connector](/api-reference/endpoint/create-connector) for field descriptions.
+
+## Errors
+
+| Code | Meaning |
+|---|---|
+| `404` | Connector not found or belongs to a different organization |
+
+## Related endpoints
+
+- [List Connectors](/api-reference/endpoint/list-connectors) – list all connectors
+- [List Resources](/api-reference/endpoint/list-connector-resources) – see resources for this connector
