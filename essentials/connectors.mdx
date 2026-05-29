@@ -63,7 +63,59 @@ Connectors produce app-source records internally. Once synced, connector data is
 
 ## Setting up a Slack connector
 
-Slack is the first supported connector provider. Here's how to set it up:
+Slack is the first supported connector provider. You can set it up using the dashboard or the API.
+
+### Using the dashboard
+
+The dashboard provides a visual interface for connecting Slack workspaces and selecting channels to sync.
+
+#### 1. Navigate to Connectors
+
+Open the dashboard at [app.hydradb.com](https://app.hydradb.com) and select **Connectors** from the sidebar.
+
+#### 2. Connect your Slack workspace
+
+Enter your Slack credentials in the connection form:
+
+| Field | Description |
+|---|---|
+| **Tenant** | Select which tenant this connector belongs to |
+| **Bot Token / User Token** | Your Slack token (starts with `xoxb-` for bot tokens or `xoxp-` for user tokens) |
+| **Account scope** | Optional workspace identifier for multi-workspace setups |
+
+Click **Connect** to create the connector.
+
+<Tip>
+Use bot tokens (`xoxb-`) for most integrations. User tokens (`xoxp-`) can access more channels but represent a specific user's permissions. Create bot tokens at [api.slack.com/apps](https://api.slack.com/apps) with the scopes listed below.
+</Tip>
+
+#### 3. Add channels to sync
+
+Expand the connector row and click **Add** to open the channel picker. The picker shows all channels the bot can access.
+
+Select channels to sync, then choose a sub-tenant mapping:
+
+| Option | Behavior |
+|---|---|
+| **Per channel** | Each channel becomes its own sub-tenant (named after the channel) |
+| **Single sub-tenant** | All selected channels share one sub-tenant you specify |
+
+Click **Add channels** to start syncing.
+
+#### 4. Manage your connector
+
+From the connectors table you can:
+
+- **Trigger sync** — Start an immediate sync instead of waiting for the schedule
+- **View resources** — Expand a connector to see synced channels
+- **Remove channels** — Delete individual channel resources
+- **Delete connector** — Remove the connector and all its resources (synced data remains in HydraDB)
+
+---
+
+### Using the API
+
+For programmatic setup or automation, use the Connectors API directly.
 
 ### 1. Create a Slack app
 
