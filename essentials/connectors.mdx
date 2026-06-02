@@ -1,6 +1,6 @@
 ---
 title: "Connectors"
-description: "Automatically sync data from third-party applications like Slack, Gmail, and Notion, enabling continuous ingestion without custom integration code."
+description: "Automatically sync data from third-party applications like Slack, Gmail, Notion, GitHub, and Linear, enabling continuous ingestion without custom integration code."
 ---
 
 Connectors let you sync data from third-party applications directly into HydraDB. Configure a connector once, and HydraDB handles authentication, pagination, and incremental syncing.
@@ -9,6 +9,7 @@ Use connectors when you want to:
 
 - Ingest Slack messages, Gmail emails, or Notion pages automatically
 - Sync GitHub issues from repositories for searchable project context
+- Sync Linear issues from teams or projects
 - Keep HydraDB in sync with external data sources on a schedule
 - Avoid writing custom polling or webhook infrastructure
 
@@ -20,6 +21,7 @@ Use connectors when you want to:
 | **Gmail** | Emails from selected labels | OAuth token with `gmail.readonly` scope |
 | **Notion** | Pages from selected databases or top-level pages | Internal integration token |
 | **GitHub** | Issues from repositories (not pull requests) | Personal access token (`ghp_`) |
+| **Linear** | Issues from selected teams or projects | API key (`lin_api_`) |
 
 ---
 
@@ -589,6 +591,118 @@ Synced issues appear with `kind: "ticket"` and `provider: "github"` in recall re
 
 ---
 
+## Setting up a Linear connector
+
+Linear connectors sync issues from your Linear workspace. You can select entire teams (syncing all issues within them) or specific projects.
+
+### 1. Create an API key
+
+1. In Linear, go to **Settings → API** (or navigate to [linear.app/settings/api](https://linear.app/settings/api)).
+2. Create a new personal API key or workspace API key.
+3. Copy the key (starts with `lin_api_`).
+
+<Tip>
+Personal API keys inherit the user's permissions. For production use, consider using a service account or workspace-level key with the minimum required access.
+</Tip>
+
+### 2. Create the connector
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "linear",
+    "tenant_id": "my_tenant",
+    "auth_type": "api_token",
+    "credentials": {
+      "api_token": "lin_api_your_api_key"
+    }
+  }'
+```
+
+### 3. Discover teams and projects
+
+The discover endpoint returns teams and projects accessible with your API key:
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "teams": [
+    {
+      "id": "team-uuid-123",
+      "name": "Engineering",
+      "resource_type": "linear_team",
+      "metadata": { "key": "ENG" }
+    }
+  ],
+  "projects": [
+    {
+      "id": "project-uuid-456",
+      "name": "Q2 Launch",
+      "resource_type": "linear_project",
+      "metadata": {
+        "slug": "q2-launch",
+        "team_name": "Engineering"
+      }
+    }
+  ]
+}
+```
+
+### 4. Configure resources to sync
+
+Use the configure endpoint to add teams or projects with a lookback period:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/configure' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lookback_days": 30,
+    "resources": [
+      {
+        "resource_id": "team-uuid-123",
+        "name": "Engineering",
+        "resource_type": "linear_team"
+      },
+      {
+        "resource_id": "project-uuid-456",
+        "name": "Q2 Launch",
+        "resource_type": "linear_project"
+      }
+    ]
+  }'
+```
+
+| Resource type | Behavior |
+|---|---|
+| `linear_team` | Syncs all issues belonging to the team |
+| `linear_project` | Syncs all issues in a specific project |
+
+<Note>
+Issues are synced based on their `updatedAt` timestamp. The initial sync fetches issues updated within `lookback_days`. Subsequent syncs fetch only newly updated issues.
+</Note>
+
+### What gets synced
+
+HydraDB syncs issue content from Linear, including:
+
+- Issue title and description
+- State, priority, and labels
+- Assignee and creator information
+- Team and project context
+
+Synced issues appear with `kind: "ticket"` and `provider: "linear"` in recall results.
+
+---
+
 ## Sync behavior
 
 ### Initial sync lookback
@@ -631,11 +745,11 @@ Connectors support three authentication types:
 
 | Type | When to use |
 |---|---|
-| `api_token` | Single token authentication (Slack bot tokens, Gmail OAuth tokens, GitHub PATs) |
+| `api_token` | Single token authentication (Slack bot tokens, Gmail OAuth tokens, GitHub PATs, Linear API keys) |
 | `client_secret` | OAuth client credentials flow |
 | `static_bundle` | Multiple credential fields together |
 
-Slack, Gmail, Notion, and GitHub all use `api_token` authentication.
+Slack, Gmail, Notion, GitHub, and Linear all use `api_token` authentication.
 
 ---
 
@@ -662,6 +776,7 @@ Data from connectors includes a `provider` field you can filter on:
 | Gmail | `email` | `gmail` |
 | Notion | `knowledge_base` | `notion` |
 | GitHub | `ticket` | `github` |
+| Linear | `ticket` | `linear` |
 
 ---
 

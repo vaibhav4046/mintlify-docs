@@ -282,6 +282,7 @@
               "api-reference/endpoint/get-connector",
               "api-reference/endpoint/delete-connector",
               "api-reference/endpoint/discover-channels",
+              "api-reference/endpoint/configure-connector",
               "api-reference/endpoint/trigger-connector-sync",
               "api-reference/endpoint/list-connector-resources",
               "api-reference/endpoint/create-connector-resource",
