@@ -9,6 +9,7 @@ After creating a connector, use discover to list available resources you can syn
 
 - **Slack:** Returns channels the bot token has access to
 - **Notion:** Returns databases and top-level pages shared with your integration
+- **GitHub:** Returns repositories the PAT has access to
 
 ## Endpoint
 
@@ -103,6 +104,42 @@ The response structure depends on the connector's provider.
 | `*.resource_type` | Either `notion_database` or `notion_page` |
 | `*.metadata.url` | Direct link to the database or page in Notion |
 
+### GitHub response
+
+```json
+{
+  "repositories": [
+    {
+      "id": "octocat/hello-world",
+      "name": "hello-world",
+      "resource_type": "repository",
+      "metadata": {
+        "private": false,
+        "description": "My first repository"
+      }
+    },
+    {
+      "id": "octocat/private-project",
+      "name": "private-project",
+      "resource_type": "repository",
+      "metadata": {
+        "private": true,
+        "description": "Internal tooling"
+      }
+    }
+  ]
+}
+```
+
+| Field | Description |
+|---|---|
+| `repositories` | Array of discoverable repositories |
+| `repositories[].id` | Repository identifier in `owner/repo` format (use as `resource_id` when creating resources) |
+| `repositories[].name` | Repository name |
+| `repositories[].resource_type` | Always `repository` for GitHub |
+| `repositories[].metadata.private` | Whether the repository is private |
+| `repositories[].metadata.description` | Repository description |
+
 ---
 
 ## Provider requirements
@@ -130,6 +167,19 @@ Notion integrations can only access content explicitly shared with them. To make
 <Note>
 **Top-level pages only.** The discover endpoint returns databases and workspace-level pages. Child pages within databases are synced automatically when you add the parent database as a resource.
 </Note>
+
+### GitHub scopes
+
+The discover endpoint uses the connector's stored PAT to list repositories. The token must have one of these scopes:
+
+| Scope | Required for |
+|---|---|
+| `repo` | Access to all repositories (public and private) |
+| `public_repo` | Access to public repositories only |
+
+<Tip>
+Fine-grained PATs also work. Grant repository access to the specific repos you want to sync.
+</Tip>
 
 ---
 

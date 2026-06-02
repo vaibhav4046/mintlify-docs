@@ -8,6 +8,7 @@ Connectors let you sync data from third-party applications directly into HydraDB
 Use connectors when you want to:
 
 - Ingest Slack messages, Gmail emails, or Notion pages automatically
+- Sync GitHub issues from repositories for searchable project context
 - Keep HydraDB in sync with external data sources on a schedule
 - Avoid writing custom polling or webhook infrastructure
 
@@ -18,6 +19,7 @@ Use connectors when you want to:
 | **Slack** | Messages from selected channels | Bot token (`xoxb-`) or user token (`xoxp-`) |
 | **Gmail** | Emails from selected labels | OAuth token with `gmail.readonly` scope |
 | **Notion** | Pages from selected databases or top-level pages | Internal integration token |
+| **GitHub** | Issues from repositories (not pull requests) | Personal access token (`ghp_`) |
 
 ---
 
@@ -483,11 +485,115 @@ Synced pages appear with `kind: "knowledge_base"` and `provider: "notion"` in re
 
 ---
 
+## Setting up a GitHub connector
+
+The GitHub connector syncs issues from repositories you have access to. Each issue becomes a searchable record containing its title, body, author, state, and timestamps.
+
+<Note>
+The GitHub connector syncs issues only, not pull requests. Pull requests are filtered out during ingestion.
+</Note>
+
+### 1. Create a GitHub Personal Access Token
+
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens) and create a new token.
+2. Select the scopes your token needs:
+
+| Scope | Purpose |
+|---|---|
+| `repo` | Access to all repositories (public and private) |
+| `public_repo` | Access to public repositories only |
+
+3. Copy the generated token (starts with `ghp_` for classic tokens).
+
+<Tip>
+Fine-grained personal access tokens also work. Grant repository access to the specific repos you want to sync and ensure the token has read access to issues.
+</Tip>
+
+### 2. Create the connector
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "github",
+    "tenant_id": "my_tenant",
+    "auth_type": "api_token",
+    "credentials": {
+      "api_token": "ghp_your-github-token"
+    }
+  }'
+```
+
+### 3. Discover available repositories
+
+List repositories the token has access to:
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "repositories": [
+    {
+      "id": "octocat/hello-world",
+      "name": "hello-world",
+      "resource_type": "repository",
+      "metadata": {
+        "private": false,
+        "description": "My first repository"
+      }
+    },
+    {
+      "id": "octocat/private-project",
+      "name": "private-project",
+      "resource_type": "repository",
+      "metadata": {
+        "private": true,
+        "description": "Internal tooling"
+      }
+    }
+  ]
+}
+```
+
+The `id` field uses the `owner/repo` format, which you'll use as the `resource_id` when adding repositories.
+
+### 4. Add repositories as resources
+
+For each repository you want to sync:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resource_id": "octocat/hello-world",
+    "resource_type": "repository",
+    "display_name": "hello-world"
+  }'
+```
+
+### 5. Trigger the first sync
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+Synced issues appear with `kind: "ticket"` and `provider: "github"` in recall results.
+
+---
+
 ## Sync behavior
 
 ### Initial sync lookback
 
-On the first sync, HydraDB fetches messages from the last 30 days by default. You can customize this with a filter when creating the resource:
+On the first sync, HydraDB fetches data from the last 30 days by default. You can customize this with a filter when creating the resource:
 
 ```json
 {
@@ -502,7 +608,7 @@ On the first sync, HydraDB fetches messages from the last 30 days by default. Yo
 
 ### Incremental syncs
 
-After the initial sync, HydraDB tracks a cursor for each resource. Subsequent syncs fetch only new messages since the last run.
+After the initial sync, HydraDB tracks a cursor for each resource. Subsequent syncs fetch only new or updated records since the last run.
 
 ### Sync interval
 
@@ -525,11 +631,11 @@ Connectors support three authentication types:
 
 | Type | When to use |
 |---|---|
-| `api_token` | Single token authentication (Slack bot tokens, Gmail OAuth tokens, API keys) |
+| `api_token` | Single token authentication (Slack bot tokens, Gmail OAuth tokens, GitHub PATs) |
 | `client_secret` | OAuth client credentials flow |
 | `static_bundle` | Multiple credential fields together |
 
-For Slack, Gmail, and Notion, use `api_token` with your bot token, OAuth token, or integration secret.
+Slack, Gmail, Notion, and GitHub all use `api_token` authentication.
 
 ---
 
@@ -555,6 +661,7 @@ Data from connectors includes a `provider` field you can filter on:
 | Slack | `message` | `slack` |
 | Gmail | `email` | `gmail` |
 | Notion | `knowledge_base` | `notion` |
+| GitHub | `ticket` | `github` |
 
 ---
 

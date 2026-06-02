@@ -53,7 +53,7 @@ flowchart LR
 | [`/v2/connectors`](/api-reference/endpoint/list-connectors) | `GET` | List all connectors | No |
 | [`/v2/connectors/:id`](/api-reference/endpoint/get-connector) | `GET` | Get connector details | No |
 | [`/v2/connectors/:id`](/api-reference/endpoint/delete-connector) | `DELETE` | Delete a connector | No |
-| [`/v2/connectors/:id/discover`](/api-reference/endpoint/discover-channels) | `GET` | Discover available resources (e.g., Slack channels) | No |
+| [`/v2/connectors/:id/discover`](/api-reference/endpoint/discover-channels) | `GET` | Discover available resources (Slack channels, GitHub repos, Notion databases) | No |
 | [`/v2/connectors/:id/sync`](/api-reference/endpoint/trigger-connector-sync) | `POST` | Trigger a manual sync | Yes |
 | [`/v2/connectors/:id/resources`](/api-reference/endpoint/list-connector-resources) | `GET` | List connector resources | No |
 | [`/v2/connectors/:id/resources`](/api-reference/endpoint/create-connector-resource) | `POST` | Add a resource to sync | No |
@@ -61,12 +61,12 @@ flowchart LR
 
 ## Typical call sequence
 
-For a new Slack connector:
+For a new connector:
 
 ```
 1. POST   /v2/connectors                              → create connector with credentials
-2. GET    /v2/connectors/:id/discover                 → list available Slack channels
-3. POST   /v2/connectors/:id/resources                → add channels to sync
+2. GET    /v2/connectors/:id/discover                 → list available resources
+3. POST   /v2/connectors/:id/resources                → add resources to sync
 4. POST   /v2/connectors/:id/sync                     → trigger first sync (optional)
 5. POST   /recall/full_recall with search_apps: true  → query synced data
 ```
@@ -85,29 +85,29 @@ DELETE /v2/connectors/:id           → remove connector entirely
 
 **Connector** – A configured link to an external provider. Holds credentials and sync settings.
 
-**Provider** – The external application type, such as `slack`. Each provider has specific authentication requirements and resource types.
+**Provider** – The external application type, such as `slack`, `notion`, or `github`. Each provider has specific authentication requirements and resource types.
 
-**Resource** – A specific data source within the provider, such as a Slack channel. Each resource is synced independently.
+**Resource** – A specific data source within the provider, such as a Slack channel, Notion database, or GitHub repository. Each resource is synced independently.
 
 **Sync** – The process of pulling data from the provider into HydraDB. Runs automatically on schedule or triggered manually.
 
-**Discover** – Queries the provider to list available resources you can add. For Slack, this returns channels the bot can access.
+**Discover** – Queries the provider to list available resources you can add.
 
 ## Authentication types
 
 | Type | Description | Example use |
 |---|---|---|
-| `api_token` | Single token authentication | Slack bot tokens (`xoxb-...`) |
+| `api_token` | Single token authentication | Slack bot tokens (`xoxb-...`), GitHub PATs (`ghp_...`), Notion integration tokens |
 | `client_secret` | OAuth client credentials | Services using client ID + secret |
 | `static_bundle` | Multiple credential fields | Complex auth with multiple tokens |
 
 ## Supported providers
 
-| Provider | Resource types | Status |
+| Provider | Resource types | What gets synced |
 |---|---|---|
-| `slack` | Channels (public and private) | Available |
-
-More providers coming soon.
+| `slack` | Channels (public and private) | Messages |
+| `notion` | Databases and pages | Page content |
+| `github` | Repositories | Issues |
 
 ## Related sections
 
