@@ -1,13 +1,13 @@
 ---
 title: "Connectors"
-description: "Automatically sync data from third-party applications like Slack and Notion, enabling continuous ingestion without custom integration code."
+description: "Automatically sync data from third-party applications like Slack, Gmail, and Notion, enabling continuous ingestion without custom integration code."
 ---
 
 Connectors let you sync data from third-party applications directly into HydraDB. Configure a connector once, and HydraDB handles authentication, pagination, and incremental syncing.
 
 Use connectors when you want to:
 
-- Ingest Slack messages or Notion pages automatically
+- Ingest Slack messages, Gmail emails, or Notion pages automatically
 - Keep HydraDB in sync with external data sources on a schedule
 - Avoid writing custom polling or webhook infrastructure
 
@@ -16,13 +16,14 @@ Use connectors when you want to:
 | Provider | Data synced | Authentication |
 |---|---|---|
 | **Slack** | Messages from selected channels | Bot token (`xoxb-`) or user token (`xoxp-`) |
+| **Gmail** | Emails from selected labels | OAuth token with `gmail.readonly` scope |
 | **Notion** | Pages from selected databases or top-level pages | Internal integration token |
 
 ---
 
 ## How connectors work
 
-A connector is a link between HydraDB and an external application. You provide credentials (an API token or OAuth secret), select which resources to sync (such as Slack channels or Notion databases), and HydraDB handles the rest.
+A connector is a link between HydraDB and an external application. You provide credentials (an API token or OAuth secret), select which resources to sync (such as Slack channels, Gmail labels, or Notion databases), and HydraDB handles the rest.
 
 ```mermaid
 flowchart LR
@@ -44,9 +45,9 @@ Each connector has:
 
 | Component | Description |
 |---|---|
-| **Provider** | The external application (Slack or Notion) |
+| **Provider** | The external application (Slack, Gmail, or Notion) |
 | **Credentials** | Authentication for the provider (API token, OAuth, or client secret) |
-| **Resources** | Individual data sources within the provider (Slack channels, Notion databases, or Notion pages) |
+| **Resources** | Individual data sources within the provider (Slack channels, Gmail labels, Notion databases) |
 | **Sync schedule** | How often HydraDB pulls new data (default: 30 minutes) |
 
 ---
@@ -224,6 +225,148 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
 
 ---
 
+## Setting up a Gmail connector
+
+Gmail connectors sync email messages from selected labels into HydraDB. You need a Google Cloud project with OAuth credentials.
+
+### Prerequisites
+
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).
+2. Enable the Gmail API for your project.
+3. Configure an OAuth consent screen (internal for Google Workspace, or external for general use).
+4. Create OAuth 2.0 credentials and obtain an access token with the required scope.
+
+### Required OAuth scope
+
+Your OAuth token must include at least one of these scopes:
+
+| Scope | Access level |
+|---|---|
+| `https://www.googleapis.com/auth/gmail.readonly` | Read-only access to Gmail (recommended) |
+| `https://mail.google.com/` | Full access to Gmail |
+
+<Tip>
+Use the `gmail.readonly` scope for most integrations. It provides read access to messages without the ability to modify or delete emails.
+</Tip>
+
+### 1. Create the connector
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "gmail",
+    "tenant_id": "my_tenant",
+    "auth_type": "api_token",
+    "credentials": {
+      "api_token": "ya29.your-google-oauth-token"
+    }
+  }'
+```
+
+The response includes a `connector_id` you'll use for subsequent calls.
+
+### 2. Discover available labels
+
+Discover which Gmail labels are available to sync:
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "resources": [
+    {
+      "id": "INBOX",
+      "name": "INBOX",
+      "resource_type": "label",
+      "metadata": {
+        "type": "system",
+        "hidden": false
+      }
+    },
+    {
+      "id": "Label_1",
+      "name": "Work",
+      "resource_type": "label",
+      "metadata": {
+        "type": "user",
+        "hidden": false
+      }
+    }
+  ]
+}
+```
+
+Gmail labels include system labels (INBOX, SENT, DRAFTS) and user-created labels.
+
+### 3. Add labels as resources
+
+For each label you want to sync, create a resource:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resource_id": "INBOX",
+    "resource_type": "label",
+    "display_name": "Inbox"
+  }'
+```
+
+You can also configure multiple labels at once using the configure endpoint:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/configure' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lookback_days": 30,
+    "resources": [
+      {
+        "resource_id": "INBOX",
+        "resource_type": "label",
+        "name": "Inbox"
+      },
+      {
+        "resource_id": "Label_1",
+        "resource_type": "label",
+        "name": "Work"
+      }
+    ]
+  }'
+```
+
+### 4. Trigger the first sync
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+### What gets synced
+
+Gmail connectors sync email messages with the following fields:
+
+| Field | Description |
+|---|---|
+| `subject` | Email subject line |
+| `body` | Email body content |
+| `from` | Sender email address |
+| `to` | Recipient email address |
+| `thread_id` | Gmail thread identifier (groups related messages) |
+| `created_at` | When the email was received |
+
+Synced messages use `kind: "email"` and `provider: "gmail"`, so you can filter by provider in your queries.
+
+---
+
 ## Setting up a Notion connector
 
 Notion connectors sync page content from your Notion workspace. You can select entire databases (syncing all pages within them) or individual top-level pages.
@@ -382,11 +525,11 @@ Connectors support three authentication types:
 
 | Type | When to use |
 |---|---|
-| `api_token` | Single token authentication (Slack bot tokens, API keys) |
+| `api_token` | Single token authentication (Slack bot tokens, Gmail OAuth tokens, API keys) |
 | `client_secret` | OAuth client credentials flow |
 | `static_bundle` | Multiple credential fields together |
 
-For both Slack and Notion, use `api_token` with your bot token or integration secret.
+For Slack, Gmail, and Notion, use `api_token` with your bot token, OAuth token, or integration secret.
 
 ---
 
@@ -410,6 +553,7 @@ Data from connectors includes a `provider` field you can filter on:
 | Provider | kind | provider |
 |---|---|---|
 | Slack | `message` | `slack` |
+| Gmail | `email` | `gmail` |
 | Notion | `knowledge_base` | `notion` |
 
 ---
