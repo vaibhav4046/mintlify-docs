@@ -482,13 +482,16 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
 
 ### What gets synced
 
-HydraDB extracts text content from Notion pages, including:
+HydraDB extracts content from Notion pages, including:
 
 - Paragraph text
 - Headings (H1, H2, H3)
 - Bulleted and numbered lists
 - To-do items
 - Quotes and callouts
+- Images and file attachments
+
+**Attachments** embedded in pages (images and files) are extracted automatically. Each attachment includes its URL and content type.
 
 Synced pages appear with `kind: "knowledge_base"` and `provider: "notion"` in recall results.
 
