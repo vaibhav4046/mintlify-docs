@@ -361,11 +361,18 @@ Gmail connectors sync email messages with the following fields:
 | Field | Description |
 |---|---|
 | `subject` | Email subject line |
-| `body` | Email body content |
+| `body` | Email body content (decoded from the message payload) |
 | `from` | Sender email address |
 | `to` | Recipient email address |
+| `cc` | CC recipients |
+| `reply_to` | Reply-To address (if set) |
+| `in_reply_to` | RFC 2822 Message-ID of the parent email (for threading) |
 | `thread_id` | Gmail thread identifier (groups related messages) |
 | `created_at` | When the email was received |
+
+**Attachments** are extracted automatically. Each attachment includes its filename, content type, and size.
+
+**Threading**: When an email is a reply, HydraDB resolves the `In-Reply-To` header to link it to the parent message. This creates a `reply_to` relation in the graph, so you can run thread-aware queries.
 
 Synced messages use `kind: "email"` and `provider: "gmail"`, so you can filter by provider in your queries.
 
