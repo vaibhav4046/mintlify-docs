@@ -597,7 +597,25 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
   -H "Authorization: Bearer $HYDRADB_API_KEY"
 ```
 
-Synced issues appear with `kind: "ticket"` and `provider: "github"` in recall results.
+### What gets synced
+
+GitHub connectors sync issue data with the following fields:
+
+| Field | Description |
+|---|---|
+| `title` | Issue title |
+| `body` | Issue description |
+| `author` | GitHub username of the issue creator |
+| `state` | Issue state (`open` or `closed`) |
+| `assignees` | List of assigned GitHub usernames |
+| `labels` | Issue labels |
+| `milestone` | Milestone name (if assigned) |
+| `created_at` | When the issue was created |
+| `updated_at` | When the issue was last updated |
+| `closed_at` | When the issue was closed (if applicable) |
+| `url` | Direct link to the issue on GitHub |
+
+Synced issues use `kind: "ticket"` and `provider: "github"`, so you can filter by provider in your queries.
 
 ---
 
