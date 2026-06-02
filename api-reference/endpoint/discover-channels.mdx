@@ -1,11 +1,14 @@
 ---
-title: "Discover Channels"
-description: "Discover available resources (channels) for a connector."
+title: "Discover Resources"
+description: "Discover available resources for a connector."
 ---
 
 ## When to use it
 
-After creating a connector, use discover to list available resources you can sync. For Slack connectors, this returns channels the bot token has access to.
+After creating a connector, use discover to list available resources you can sync. The response structure varies by provider:
+
+- **Slack:** Returns channels the bot token has access to
+- **Notion:** Returns databases and top-level pages shared with your integration
 
 ## Endpoint
 
@@ -30,6 +33,10 @@ curl 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000
 
 ## Response
 
+The response structure depends on the connector's provider.
+
+### Slack response
+
 ```json
 {
   "channels": [
@@ -46,13 +53,6 @@ curl 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000
       "is_private": false,
       "is_member": true,
       "num_members": 15
-    },
-    {
-      "id": "G03GHI789",
-      "name": "private-team",
-      "is_private": true,
-      "is_member": true,
-      "num_members": 5
     }
   ]
 }
@@ -67,7 +67,47 @@ curl 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000
 | `channels[].is_member` | Whether the bot is a member of the channel |
 | `channels[].num_members` | Number of members in the channel |
 
-## Required Slack scopes
+### Notion response
+
+```json
+{
+  "databases": [
+    {
+      "id": "abc123-def456",
+      "name": "Product Docs",
+      "resource_type": "notion_database",
+      "metadata": {
+        "url": "https://notion.so/abc123"
+      }
+    }
+  ],
+  "pages": [
+    {
+      "id": "xyz789-uvw012",
+      "name": "Company Handbook",
+      "resource_type": "notion_page",
+      "metadata": {
+        "url": "https://notion.so/xyz789"
+      }
+    }
+  ]
+}
+```
+
+| Field | Description |
+|---|---|
+| `databases` | Array of discoverable Notion databases |
+| `pages` | Array of discoverable top-level Notion pages |
+| `*.id` | Notion object ID (use as `resource_id` when creating resources) |
+| `*.name` | Database or page title |
+| `*.resource_type` | Either `notion_database` or `notion_page` |
+| `*.metadata.url` | Direct link to the database or page in Notion |
+
+---
+
+## Provider requirements
+
+### Slack scopes
 
 The discover endpoint uses the connector's stored token to query Slack. The token must have these scopes:
 
@@ -80,13 +120,26 @@ The discover endpoint uses the connector's stored token to query Slack. The toke
 **Private channels require bot membership.** The bot must be invited to private channels before they appear in the discover response. Use `/invite @your-bot-name` in Slack.
 </Note>
 
+### Notion access
+
+Notion integrations can only access content explicitly shared with them. To make a database or page appear in the discover response:
+
+1. Open the database or page in Notion.
+2. Click **Share** and invite your integration.
+
+<Note>
+**Top-level pages only.** The discover endpoint returns databases and workspace-level pages. Child pages within databases are synced automatically when you add the parent database as a resource.
+</Note>
+
+---
+
 ## Behavior notes
 
 <Info>
-**Only accessible channels are returned.** The discover endpoint inspects the token's granted scopes and only requests channel types the token has permission to list.
+**Only accessible resources are returned.** The discover endpoint returns only the resources the connector's token has permission to access.
 </Info>
 
-If the token lacks both `channels:read` and `groups:read`, the endpoint returns an error explaining which scope to add.
+For Slack, if the token lacks both `channels:read` and `groups:read`, the endpoint returns an error explaining which scope to add.
 
 ## Errors
 
@@ -99,5 +152,5 @@ If the token lacks both `channels:read` and `groups:read`, the endpoint returns 
 
 ## Related endpoints
 
-- **Next:** [Create Resource](/api-reference/endpoint/create-connector-resource) – add channels to sync
+- **Next:** [Create Resource](/api-reference/endpoint/create-connector-resource) – add resources to sync
 - **Previous:** [Create Connector](/api-reference/endpoint/create-connector) – set up the connector first

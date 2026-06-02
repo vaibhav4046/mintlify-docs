@@ -1,25 +1,28 @@
 ---
 title: "Connectors"
-description: "Automatically sync data from third-party applications like Slack, enabling continuous ingestion without custom integration code."
+description: "Automatically sync data from third-party applications like Slack and Notion, enabling continuous ingestion without custom integration code."
 ---
 
 Connectors let you sync data from third-party applications directly into HydraDB. Configure a connector once, and HydraDB handles authentication, pagination, and incremental syncing.
 
 Use connectors when you want to:
 
-- Ingest Slack messages from selected channels automatically
+- Ingest Slack messages or Notion pages automatically
 - Keep HydraDB in sync with external data sources on a schedule
 - Avoid writing custom polling or webhook infrastructure
 
-<Info>
-Connectors are currently in early access. Slack is the first supported provider, with more providers coming soon.
-</Info>
+## Supported providers
+
+| Provider | Data synced | Authentication |
+|---|---|---|
+| **Slack** | Messages from selected channels | Bot token (`xoxb-`) or user token (`xoxp-`) |
+| **Notion** | Pages from selected databases or top-level pages | Internal integration token |
 
 ---
 
 ## How connectors work
 
-A connector is a link between HydraDB and an external application. You provide credentials (an API token or OAuth secret), select which resources to sync (such as Slack channels), and HydraDB handles the rest.
+A connector is a link between HydraDB and an external application. You provide credentials (an API token or OAuth secret), select which resources to sync (such as Slack channels or Notion databases), and HydraDB handles the rest.
 
 ```mermaid
 flowchart LR
@@ -41,9 +44,9 @@ Each connector has:
 
 | Component | Description |
 |---|---|
-| **Provider** | The external application, such as Slack |
+| **Provider** | The external application (Slack or Notion) |
 | **Credentials** | Authentication for the provider (API token, OAuth, or client secret) |
-| **Resources** | Individual data sources within the provider, such as specific Slack channels |
+| **Resources** | Individual data sources within the provider (Slack channels, Notion databases, or Notion pages) |
 | **Sync schedule** | How often HydraDB pulls new data (default: 30 minutes) |
 
 ---
@@ -63,7 +66,7 @@ Connectors produce app-source records internally. Once synced, connector data is
 
 ## Setting up a Slack connector
 
-Slack is the first supported connector provider. You can set it up using the dashboard or the API.
+You can set up a Slack connector using the dashboard or the API.
 
 ### Using the dashboard
 
@@ -221,6 +224,122 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
 
 ---
 
+## Setting up a Notion connector
+
+Notion connectors sync page content from your Notion workspace. You can select entire databases (syncing all pages within them) or individual top-level pages.
+
+### 1. Create an internal integration
+
+1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations) and create a new integration.
+2. Select the workspace you want to connect.
+3. Under **Capabilities**, enable **Read content**.
+4. Copy the **Internal Integration Secret** (starts with `ntn_` or `secret_`).
+
+### 2. Share content with your integration
+
+Notion integrations can only access pages and databases explicitly shared with them:
+
+1. Open the database or page you want to sync.
+2. Click **Share** in the top right.
+3. Select your integration from the **Invite** dropdown.
+
+<Note>
+When you share a database, all pages inside it become accessible. When you share a top-level page, only that specific page is synced.
+</Note>
+
+### 3. Create the connector
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "notion",
+    "tenant_id": "my_tenant",
+    "auth_type": "api_token",
+    "credentials": {
+      "api_token": "ntn_your_notion_integration_secret"
+    }
+  }'
+```
+
+### 4. Discover databases and pages
+
+The discover endpoint returns all databases and top-level pages shared with your integration:
+
+```bash cURL
+curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "databases": [
+    {
+      "id": "abc123-def456",
+      "name": "Product Docs",
+      "resource_type": "notion_database",
+      "metadata": {
+        "url": "https://notion.so/abc123"
+      }
+    }
+  ],
+  "pages": [
+    {
+      "id": "xyz789-uvw012",
+      "name": "Company Handbook",
+      "resource_type": "notion_page",
+      "metadata": {
+        "url": "https://notion.so/xyz789"
+      }
+    }
+  ]
+}
+```
+
+### 5. Add resources to sync
+
+Add databases or pages as resources. Use `notion_database` or `notion_page` as the resource type:
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resource_id": "abc123-def456",
+    "resource_type": "notion_database",
+    "display_name": "Product Docs"
+  }'
+```
+
+| Resource type | Behavior |
+|---|---|
+| `notion_database` | Syncs all pages within the database, tracking changes by last edited time |
+| `notion_page` | Syncs a single top-level page |
+
+### 6. Trigger the first sync
+
+```bash cURL
+curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
+
+### What gets synced
+
+HydraDB extracts text content from Notion pages, including:
+
+- Paragraph text
+- Headings (H1, H2, H3)
+- Bulleted and numbered lists
+- To-do items
+- Quotes and callouts
+
+Synced pages appear with `kind: "knowledge_base"` and `provider: "notion"` in recall results.
+
+---
+
 ## Sync behavior
 
 ### Initial sync lookback
@@ -267,7 +386,7 @@ Connectors support three authentication types:
 | `client_secret` | OAuth client credentials flow |
 | `static_bundle` | Multiple credential fields together |
 
-For Slack, use `api_token` with the bot token.
+For both Slack and Notion, use `api_token` with your bot token or integration secret.
 
 ---
 
@@ -286,7 +405,12 @@ curl -X POST 'https://api.hydradb.com/recall/full_recall' \
   }'
 ```
 
-Slack messages from connectors use `kind: "message"` and `provider: "slack"`, so you can filter by provider in your queries.
+Data from connectors includes a `provider` field you can filter on:
+
+| Provider | kind | provider |
+|---|---|---|
+| Slack | `message` | `slack` |
+| Notion | `knowledge_base` | `notion` |
 
 ---
 
