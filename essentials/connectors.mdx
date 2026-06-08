@@ -18,9 +18,9 @@ Use connectors when you want to:
 | Provider | Data synced | Authentication |
 |---|---|---|
 | **Slack** | Messages from selected channels | Bot token (`xoxb-`) or user token (`xoxp-`) |
-| **Gmail** | Emails from selected labels | OAuth token with `gmail.readonly` scope |
+| **Gmail** | Emails from selected mailboxes | App Password via IMAP |
 | **Notion** | Pages from selected databases or top-level pages | Internal integration token |
-| **GitHub** | Issues from repositories (not pull requests) | Personal access token (`ghp_`) |
+| **GitHub** | Issues and pull requests from repositories | Personal access token (`ghp_`) |
 | **Linear** | Issues from selected teams or projects | API key (`lin_api_`) |
 
 ---
@@ -227,33 +227,59 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
 }
 ```
 
+### What gets synced
+
+Slack connectors sync messages with the following fields:
+
+| Field | Description |
+|---|---|
+| `body` | Message text content |
+| `author` | Display name of the message sender (resolved from Slack user profiles) |
+| `thread_id` | Thread timestamp (groups thread replies together) |
+| `parent_id` | Parent message timestamp (for thread replies) |
+| `created_at` | When the message was posted |
+| `edited` | Timestamp of the last edit (if the message was edited) |
+| `edited_by` | Display name of the user who last edited the message |
+| `url` | Permalink to the message |
+
+**Threading**: Slack threads are grouped as single documents containing the parent message and all replies. Each message includes `thread_id` pointing to the thread root and `parent_id` pointing to the immediate parent.
+
+**Author resolution**: The connector resolves Slack user IDs to display names, so queries like "messages from Alice" work correctly.
+
+Synced messages use `kind: "message"` and `provider: "slack"`. You can filter by provider in your queries.
+
 ---
 
 ## Setting up a Gmail connector
 
-Gmail connectors sync email messages from selected labels into HydraDB. You need a Google Cloud project with OAuth credentials.
+Gmail connectors sync email messages from selected mailboxes into HydraDB using IMAP with an App Password.
 
 ### Prerequisites
 
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable the Gmail API for your project.
-3. Configure an OAuth consent screen (internal for Google Workspace, or external for general use).
-4. Create OAuth 2.0 credentials and obtain an access token with the required scope.
+The Gmail connector uses IMAP authentication with an App Password. This requires:
 
-### Required OAuth scope
+1. A Gmail account with [2-Step Verification](https://myaccount.google.com/signinoptions/two-step-verification) enabled.
+2. An App Password generated specifically for HydraDB.
 
-Your OAuth token must include at least one of these scopes:
+<Warning>
+App Passwords are only available when 2-Step Verification is enabled on your Google account. If you see an error about App Passwords not being available, enable 2-Step Verification first.
+</Warning>
 
-| Scope | Access level |
-|---|---|
-| `https://www.googleapis.com/auth/gmail.readonly` | Read-only access to Gmail (recommended) |
-| `https://mail.google.com/` | Full access to Gmail |
+### 1. Generate an App Password
+
+1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+2. Sign in if prompted.
+3. Enter a name for the app (e.g., "HydraDB").
+4. Click **Create**.
+5. Copy the 16-character password (shown with spaces, but spaces are optional when using it).
 
 <Tip>
-Use the `gmail.readonly` scope for most integrations. It provides read access to messages without the ability to modify or delete emails.
+App Passwords look like `abcd wxyz efgh ijkl`. You can use them with or without spaces. Store the password securely — Google only shows it once.
 </Tip>
 
-### 1. Create the connector
+### 2. Create the connector
+
+Provide your credentials in `email:app_password` format:
 
 ```bash cURL
 curl -X POST 'https://api.hydradb.com/v2/connectors' \
@@ -264,16 +290,16 @@ curl -X POST 'https://api.hydradb.com/v2/connectors' \
     "tenant_id": "my_tenant",
     "auth_type": "api_token",
     "credentials": {
-      "api_token": "ya29.your-google-oauth-token"
+      "access_token": "user@gmail.com:abcdwxyzefghijkl"
     }
   }'
 ```
 
-The response includes a `connector_id` you'll use for subsequent calls.
+The `access_token` field should contain your Gmail address followed by a colon and your App Password (no spaces).
 
-### 2. Discover available labels
+### 3. Discover available mailboxes
 
-Discover which Gmail labels are available to sync:
+Discover which IMAP mailboxes are available to sync:
 
 ```bash cURL
 curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
@@ -288,30 +314,27 @@ curl 'https://api.hydradb.com/v2/connectors/<connector_id>/discover' \
     {
       "id": "INBOX",
       "name": "INBOX",
-      "resource_type": "label",
-      "metadata": {
-        "type": "system",
-        "hidden": false
-      }
+      "resource_type": "gmail_label"
     },
     {
-      "id": "Label_1",
+      "id": "[Gmail]/Sent Mail",
+      "name": "[Gmail]/Sent Mail",
+      "resource_type": "gmail_label"
+    },
+    {
+      "id": "Work",
       "name": "Work",
-      "resource_type": "label",
-      "metadata": {
-        "type": "user",
-        "hidden": false
-      }
+      "resource_type": "gmail_label"
     }
   ]
 }
 ```
 
-Gmail labels include system labels (INBOX, SENT, DRAFTS) and user-created labels.
+The discover endpoint returns all IMAP-selectable mailboxes, including system folders (INBOX, Sent Mail) and custom labels.
 
-### 3. Add labels as resources
+### 4. Add mailboxes as resources
 
-For each label you want to sync, create a resource:
+For each mailbox you want to sync, create a resource:
 
 ```bash cURL
 curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
@@ -319,35 +342,35 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/resources' \
   -H "Content-Type: application/json" \
   -d '{
     "resource_id": "INBOX",
-    "resource_type": "label",
+    "resource_type": "gmail_label",
     "display_name": "Inbox"
   }'
 ```
 
-You can also configure multiple labels at once using the configure endpoint:
+You can also configure multiple mailboxes at once using the configure endpoint:
 
 ```bash cURL
 curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/configure' \
   -H "Authorization: Bearer $HYDRADB_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "lookback_days": 30,
+    "lookback_days": 10,
     "resources": [
       {
         "resource_id": "INBOX",
-        "resource_type": "label",
+        "resource_type": "gmail_label",
         "name": "Inbox"
       },
       {
-        "resource_id": "Label_1",
-        "resource_type": "label",
+        "resource_id": "Work",
+        "resource_type": "gmail_label",
         "name": "Work"
       }
     ]
   }'
 ```
 
-### 4. Trigger the first sync
+### 5. Trigger the first sync
 
 ```bash cURL
 curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
@@ -361,18 +384,21 @@ Gmail connectors sync email messages with the following fields:
 | Field | Description |
 |---|---|
 | `subject` | Email subject line |
-| `body` | Email body content (decoded from the message payload) |
-| `from` | Sender email address |
-| `to` | Recipient email address |
+| `body` | Email body content (plain text extracted from MIME parts) |
+| `from` | Sender email address with display name |
+| `to` | Recipient email addresses |
 | `cc` | CC recipients |
 | `reply_to` | Reply-To address (if set) |
 | `in_reply_to` | RFC 2822 Message-ID of the parent email (for threading) |
-| `thread_id` | Gmail thread identifier (groups related messages) |
+| `message_id` | RFC 2822 Message-ID of this email |
+| `thread_id` | Thread identifier (groups related messages) |
 | `created_at` | When the email was received |
 
-**Attachments** are extracted automatically. Each attachment includes its filename, content type, and size.
+**Full thread ingestion**: When a recent email belongs to a thread, the connector fetches all messages in that thread (including older messages outside the lookback window) so the complete conversation is ingested together.
 
-**Threading**: When an email is a reply, HydraDB resolves the `In-Reply-To` header to link it to the parent message. This creates a `reply_to` relation in the graph, so you can run thread-aware queries.
+**MIME handling**: The connector handles multipart emails correctly, preferring plain text over HTML and properly decoding quoted-printable and base64 transfer encodings.
+
+**Threading**: The connector uses `In-Reply-To` and `References` headers to resolve parent messages and build the full reply chain. This creates `reply_to` relations in the graph for thread-aware queries.
 
 Synced messages use `kind: "email"` and `provider: "gmail"`, so you can filter by provider in your queries.
 
@@ -499,11 +525,7 @@ Synced pages appear with `kind: "knowledge_base"` and `provider: "notion"` in re
 
 ## Setting up a GitHub connector
 
-The GitHub connector syncs issues from repositories you have access to. Each issue becomes a searchable record containing its title, body, author, state, and timestamps.
-
-<Note>
-The GitHub connector syncs issues only, not pull requests. Pull requests are filtered out during ingestion.
-</Note>
+The GitHub connector syncs issues and pull requests from repositories you have access to. Each item becomes a searchable record containing its title, body, author, state, and timestamps.
 
 ### 1. Create a GitHub Personal Access Token
 
@@ -599,23 +621,24 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/<connector_id>/sync' \
 
 ### What gets synced
 
-GitHub connectors sync issue data with the following fields:
+GitHub connectors sync issues and pull requests with the following fields:
 
 | Field | Description |
 |---|---|
-| `title` | Issue title |
-| `body` | Issue description |
-| `author` | GitHub username of the issue creator |
-| `state` | Issue state (`open` or `closed`) |
+| `title` | Issue or PR title |
+| `body` | Issue or PR description |
+| `author` | GitHub username of the creator |
+| `state` | State (`open` or `closed`) |
 | `assignees` | List of assigned GitHub usernames |
-| `labels` | Issue labels |
+| `labels` | Labels |
 | `milestone` | Milestone name (if assigned) |
-| `created_at` | When the issue was created |
-| `updated_at` | When the issue was last updated |
-| `closed_at` | When the issue was closed (if applicable) |
-| `url` | Direct link to the issue on GitHub |
+| `is_pr` | `true` for pull requests, `false` for issues |
+| `created_at` | When the item was created |
+| `updated_at` | When the item was last updated |
+| `closed_at` | When the item was closed (if applicable) |
+| `url` | Direct link to the issue or PR on GitHub |
 
-Synced issues use `kind: "ticket"` and `provider: "github"`, so you can filter by provider in your queries.
+Both issues and pull requests use `kind: "ticket"` and `provider: "github"`. Use the `is_pr` field to distinguish between them in queries.
 
 ---
 
@@ -773,7 +796,7 @@ Connectors support three authentication types:
 
 | Type | When to use |
 |---|---|
-| `api_token` | Single token authentication (Slack bot tokens, Gmail OAuth tokens, GitHub PATs, Linear API keys) |
+| `api_token` | Single token authentication (Slack bot tokens, Gmail App Passwords, GitHub PATs, Linear API keys) |
 | `client_secret` | OAuth client credentials flow |
 | `static_bundle` | Multiple credential fields together |
 
