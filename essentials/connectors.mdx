@@ -69,57 +69,74 @@ Connectors produce app-source records internally. Once synced, connector data is
 
 ---
 
-## Setting up a Slack connector
+## Using the dashboard
 
-You can set up a Slack connector using the dashboard or the API.
+The dashboard provides a visual interface for connecting any supported provider. Navigate to **Connectors** in the sidebar at [app.hydradb.com](https://app.hydradb.com) to get started.
 
-### Using the dashboard
+### Connecting a provider
 
-The dashboard provides a visual interface for connecting Slack workspaces and selecting channels to sync.
-
-#### 1. Navigate to Connectors
-
-Open the dashboard at [app.hydradb.com](https://app.hydradb.com) and select **Connectors** from the sidebar.
-
-#### 2. Connect your Slack workspace
-
-Enter your Slack credentials in the connection form:
+Each provider card shows the data types it syncs (for example, "Channels · Threads · Messages" for Slack). Click **Connect** to open the connection form.
 
 | Field | Description |
 |---|---|
-| **Tenant** | Select which tenant this connector belongs to |
-| **Bot Token / User Token** | Your Slack token (starts with `xoxb-` for bot tokens or `xoxp-` for user tokens) |
-| **Account scope** | Optional workspace identifier for multi-workspace setups |
+| **Target tenant** | Select which tenant owns this connector |
+| **Credentials** | The authentication token for the provider (see provider-specific sections below for how to obtain tokens) |
 
-Click **Connect** to create the connector.
+The form validates your credentials before saving. Once valid, click **Establish connection** to create the connector.
 
-<Tip>
-Use bot tokens (`xoxb-`) for most integrations. User tokens (`xoxp-`) can access more channels but represent a specific user's permissions. Create bot tokens at [api.slack.com/apps](https://api.slack.com/apps) with the scopes listed below.
-</Tip>
+### Adding resources to sync
 
-#### 3. Add channels to sync
+After connecting, expand the connector row and click **Add** to open the resource picker. The picker discovers available resources from the provider (Slack channels, Gmail mailboxes, GitHub repositories, Notion databases, or Linear teams).
 
-Expand the connector row and click **Add** to open the channel picker. The picker shows all channels the bot can access.
+Select the resources you want to sync, then configure:
 
-Select channels to sync, then choose a sub-tenant mapping:
+**Tenant routing**
 
 | Option | Behavior |
 |---|---|
-| **Per channel** | Each channel becomes its own sub-tenant (named after the channel) |
-| **Single sub-tenant** | All selected channels share one sub-tenant you specify |
+| **All resources → connector tenant** | All selected resources sync to the connector's tenant |
+| **Route specific resources to different tenants** | Assign individual resources to different tenants |
 
-Click **Add channels** to start syncing.
+**Sub-tenant mapping**
 
-#### 4. Manage your connector
+| Option | Behavior |
+|---|---|
+| **Per resource** | Each resource becomes its own sub-tenant (named after the resource) |
+| **Single** | All selected resources share one sub-tenant you specify |
+| **Custom** | Set a custom sub-tenant name for each resource individually |
 
-From the connectors table you can:
+**History window**
+
+Choose how far back to sync on the initial import:
+
+| Option | Description |
+|---|---|
+| **Last 30 days** | Default lookback period |
+| **Last 3 months** | Sync 90 days of history |
+| **Last 6 months** | Sync 180 days of history |
+| **Last year** | Sync 365 days of history |
+| **From the beginning** | Sync all available history |
+
+<Note>
+History older than 30 days is backfilled in the background after the initial sync completes.
+</Note>
+
+Click **Add resources** to start syncing.
+
+### Managing connectors
+
+From the connectors page you can:
 
 - **Trigger sync** — Start an immediate sync instead of waiting for the schedule
-- **View resources** — Expand a connector to see synced channels
-- **Remove channels** — Delete individual channel resources
-- **Delete connector** — Remove the connector and all its resources (synced data remains in HydraDB)
+- **View resources** — Expand a connector to see its synced resources
+- **Remove resources** — Delete individual resources from a connector
+- **Delete connector** — Remove the connector entirely (previously synced data remains in HydraDB)
 
 ---
+
+## Setting up a Slack connector
+
+You can set up a Slack connector using the dashboard or the API. See [Using the dashboard](#using-the-dashboard) for the visual setup flow.
 
 ### Using the API
 
@@ -252,7 +269,7 @@ Synced messages use `kind: "message"` and `provider: "slack"`. You can filter by
 
 ## Setting up a Gmail connector
 
-Gmail connectors sync email messages from selected mailboxes into HydraDB using IMAP with an App Password.
+Gmail connectors sync email messages from selected mailboxes into HydraDB using IMAP with an App Password. You can set up a Gmail connector using the [dashboard](#using-the-dashboard) or the API.
 
 ### Prerequisites
 
@@ -406,7 +423,7 @@ Synced messages use `kind: "email"` and `provider: "gmail"`, so you can filter b
 
 ## Setting up a Notion connector
 
-Notion connectors sync page content from your Notion workspace. You can select entire databases (syncing all pages within them) or individual top-level pages.
+Notion connectors sync page content from your Notion workspace. You can select entire databases (syncing all pages within them) or individual top-level pages. You can set up a Notion connector using the [dashboard](#using-the-dashboard) or the API.
 
 ### 1. Create an internal integration
 
@@ -525,7 +542,7 @@ Synced pages appear with `kind: "knowledge_base"` and `provider: "notion"` in re
 
 ## Setting up a GitHub connector
 
-The GitHub connector syncs issues and pull requests from repositories you have access to. Each item becomes a searchable record containing its title, body, author, state, and timestamps.
+The GitHub connector syncs issues and pull requests from repositories you have access to. Each item becomes a searchable record containing its title, body, author, state, and timestamps. You can set up a GitHub connector using the [dashboard](#using-the-dashboard) or the API.
 
 ### 1. Create a GitHub Personal Access Token
 
@@ -644,7 +661,7 @@ Both issues and pull requests use `kind: "ticket"` and `provider: "github"`. Use
 
 ## Setting up a Linear connector
 
-Linear connectors sync issues from your Linear workspace. You can select entire teams (syncing all issues within them) or specific projects.
+Linear connectors sync issues from your Linear workspace. You can select entire teams (syncing all issues within them) or specific projects. You can set up a Linear connector using the [dashboard](#using-the-dashboard) or the API.
 
 ### 1. Create an API key
 
