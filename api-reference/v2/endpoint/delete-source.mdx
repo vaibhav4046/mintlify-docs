@@ -156,7 +156,7 @@ curl -X DELETE 'https://api.hydradb.com/context' \
 ## Some additional notes
 
 - **Partial-success semantics:** For `type=knowledge`, each ID is reported independently in `results[]`. A failure on one ID does not stop the rest. For `type=memory`, the response reports an aggregate `user_memory_deleted` reflecting _all_ listed IDs.
-- **Retrieval drops the source immediately:** Even before background cleanup finishes, deleted IDs disappear from `/query` and `/context/list` responses.
+- **Complete and immediate:** Deletion removes both metadata and underlying file storage. Deleted IDs disappear from `/query` and `/context/list` responses immediately, and cannot be fetched via `/context/inspect` – requests return `SOURCE_NOT_FOUND`. No presigned URLs can be generated for deleted content. This ensures compliance with right-to-deletion requirements.
 - **Mixed deletes need two calls:** To delete both knowledge and memory items, send two requests  -  one with `type=knowledge`, one with `type=memory`.
 
 <div className="api-before-related-resources" />

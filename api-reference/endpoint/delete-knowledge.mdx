@@ -101,6 +101,10 @@ response = client.data.delete(
 **Cascade scope.** Deleting a knowledge source removes its chunks, embeddings, and any graph entities/relations exclusively associated with it. Entities shared with other sources are retained.
 </Info>
 
+<Info>
+**Complete and immediate.** Deletion removes both the metadata and the underlying file storage. Deleted sources cannot be fetched or have presigned URLs generated – requests return `404 SOURCE_NOT_FOUND` immediately. This ensures compliance with right-to-deletion requirements.
+</Info>
+
 ## Related endpoints
 
 - **Browse before deleting:** [List data](/api-reference/endpoint/list-data) – confirm what you're about to remove

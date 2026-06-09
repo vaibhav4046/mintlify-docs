@@ -16,6 +16,10 @@ To remove documents (knowledge) instead of user memories, use [`POST /knowledge/
 **This operation is irreversible.** Once deleted, the memory cannot be recovered.
 </Warning>
 
+<Info>
+**Complete and immediate.** Deletion removes both the metadata and the underlying storage. Deleted memories cannot be fetched by their `source_id` – requests return `404 MEMORY_NOT_FOUND` immediately. This ensures compliance with right-to-deletion requirements.
+</Info>
+
 ## Endpoint
 
 - **Auth:** Bearer token
