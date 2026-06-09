@@ -27,7 +27,7 @@ Use connectors when you want to:
 
 ## How connectors work
 
-A connector is a link between HydraDB and an external application. You provide credentials (an API token or OAuth secret), select which resources to sync (such as Slack channels, Gmail labels, or Notion databases), and HydraDB handles the rest.
+A connector is a link between HydraDB and an external application. You provide credentials (an API token), select which resources to sync (such as Slack channels, Gmail labels, or Notion databases), and HydraDB handles the rest.
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ Each connector has:
 | Component | Description |
 |---|---|
 | **Provider** | The external application (Slack, Gmail, or Notion) |
-| **Credentials** | Authentication for the provider (API token, OAuth, or client secret) |
+| **Credentials** | Authentication for the provider (API token) |
 | **Resources** | Individual data sources within the provider (Slack channels, Gmail labels, Notion databases) |
 | **Sync schedule** | How often HydraDB pulls new data (default: 30 minutes) |
 
@@ -822,15 +822,14 @@ The default sync interval is 30 minutes. You can set a custom interval (in secon
 
 ## Authentication types
 
-Connectors support three authentication types:
+Connectors support two authentication types:
 
 | Type | When to use |
 |---|---|
 | `api_token` | Single token authentication (Slack bot tokens, Gmail App Passwords, GitHub PATs, Linear API keys) |
-| `client_secret` | OAuth client credentials flow |
 | `static_bundle` | Multiple credential fields together |
 
-Slack, Gmail, Notion, GitHub, and Linear all use `api_token` authentication.
+All supported providers (Slack, Gmail, Notion, GitHub, and Linear) use `api_token` authentication.
 
 ---
 
