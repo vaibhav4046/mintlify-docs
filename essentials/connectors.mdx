@@ -296,7 +296,20 @@ App Passwords look like `abcd wxyz efgh ijkl`. You can use them with or without 
 
 ### 2. Create the connector
 
-Provide your credentials in `email:app_password` format:
+#### Using the dashboard
+
+The Gmail connector form has two fields:
+
+| Field | Description |
+|---|---|
+| **Gmail address** | Your Gmail email address (e.g., `you@gmail.com`) |
+| **App password** | The 16-character App Password from step 1 |
+
+Enter your Gmail address and App Password, then click **Establish connection**.
+
+#### Using the API
+
+When using the API directly, provide credentials in `email:app_password` format:
 
 ```bash cURL
 curl -X POST 'https://api.hydradb.com/v2/connectors' \
