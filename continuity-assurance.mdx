@@ -1,6 +1,26 @@
 ---
 title: "Continuity Assurance"
-description: "Learn about HydraDB's commitment to service continuity and deployment options"
+description: "Learn about HydraDB's commitment to service continuity, data protection, and deployment options"
+---
+
+# Data Protection
+
+HydraDB Cloud includes automated data protection for all production tenants.
+
+## Automated Backups
+
+Vector data and knowledge graphs are backed up daily at 02:00 UTC. Backups are stored in your tenant's dedicated S3 bucket under a separate `backup/` prefix, isolated from other tenants.
+
+Backup coverage:
+- All Milvus collections (vector embeddings, indexes, metadata)
+- Full point-in-time snapshots
+
+Retention and lifecycle policies are managed per-bucket. Contact [founders@hydradb.com](mailto:founders@hydradb.com) for custom retention requirements or to request a restore.
+
+<Note>
+Self-hosted deployments manage their own backup schedules. See the self-hosted documentation for configuration details.
+</Note>
+
 ---
 
 # What if HydraDB shuts down?
