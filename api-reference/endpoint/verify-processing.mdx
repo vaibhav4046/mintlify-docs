@@ -176,6 +176,10 @@ Typical processing time:
 **`graph_creation` is searchable.** Items in the `graph_creation` state are already retrievable via `full_recall` and `recall_preferences`. Wait for `completed` only if you specifically need full graph context.
 </Info>
 
+<Info>
+**Deleted sources return `errored`.** Deleting a source or memory also removes its status data. Querying a deleted ID returns `indexing_status: "errored"`, the same as any unknown ID.
+</Info>
+
 ## Related endpoints
 
 - **Before this:** [Upload knowledge](/api-reference/endpoint/upload-knowledge) · [Add memory](/api-reference/endpoint/add-memory)
