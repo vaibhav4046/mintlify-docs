@@ -258,6 +258,7 @@ These error codes are returned in the `detail.error_code` field of error respons
 |---|---|---|
 | `INVALID_FILE_FORMAT` | 400 | Unsupported file format |
 | `FILE_TOO_LARGE` | 400 | File exceeds size limits |
+| `INVALID_PARAMETERS` | 400 | Metadata validation failed (key too long, value too large, nesting too deep, or non-finite float) |
 | `PROCESSING_FAILED` | – | Returned in `verify_processing` response with `indexing_status: errored` |
 
 ### Memories

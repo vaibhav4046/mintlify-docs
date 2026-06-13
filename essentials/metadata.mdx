@@ -162,6 +162,34 @@ HydraDB exposes two metadata fields on every source object. **Both are filterabl
 
 If a field will be filtered on every query (hot path), put it in `metadata` and declare it in the tenant schema with `enable_match: true`. For ad-hoc or per-document fields, use `additional_metadata`.
 
+### Validation limits
+
+HydraDB validates metadata at ingestion and rejects requests exceeding these limits with a `400 Bad Request` error:
+
+| Constraint | Limit | Error |
+|---|---|---|
+| Key length | 1,024 characters | `metadata key "..." exceeds the maximum length of 1024` |
+| Value size | 65,535 bytes (JSON-encoded) | `metadata value at "..." is N bytes, exceeding the maximum of 65535` |
+| Nesting depth | 2 levels | `unsupported metadata value at "...": maximum nesting depth is 2` |
+| Non-finite floats | Not allowed | `unsupported metadata value at "...": non-finite float` |
+
+Nesting depth applies to containers (arrays and objects) below each top-level key. Scalars do not count.
+
+```json
+// Valid (depth 2)
+{
+  "author": { "name": "Alice", "team": "engineering" },
+  "tags": ["security", "compliance"]
+}
+
+// Invalid (depth 3) — rejected at ingestion
+{
+  "nested": { "too": { "deep": { "value": 1 } } }
+}
+```
+
+These constraints apply to both `metadata` and `additional_metadata` fields across all ingestion endpoints: memory ingest, memory add, and knowledge upload.
+
 ### Metadata filtering vs `sub_tenant_id`
 
 Use `sub_tenant_id` to partition data by user, workspace, team, or another logical scope.
