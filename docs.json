@@ -75,6 +75,12 @@
                 ]
               },
               {
+                "group": "Self-Hosted",
+                "pages": [
+                  "self-hosted/server-auth-secrets"
+                ]
+              },
+              {
                 "group": "For Agents",
                 "pages": ["AGENTS"]
               }
@@ -187,6 +193,12 @@
                   "plugins/mcp",
                   "plugins/cli",
                   "plugins/openclaw"
+                ]
+              },
+              {
+                "group": "Self-Hosted",
+                "pages": [
+                  "self-hosted/server-auth-secrets"
                 ]
               },
               {
