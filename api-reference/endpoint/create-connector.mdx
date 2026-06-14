@@ -44,8 +44,8 @@ curl -X POST 'https://api.hydradb.com/v2/connectors' \
 | `credentials` | object | Yes | Provider credentials. See [Credentials](#credentials) below. |
 | `sync_interval_seconds` | integer | No | Seconds between automatic syncs. Default: `1800` (30 minutes). |
 | `provider_account_scope` | string | No | Optional scope identifier for the provider account. |
-| `deployment_id` | string | No | Optional deployment association. |
-| `plan` | string | No | Optional plan identifier. |
+| `deployment_id` | string | No | Deployment identifier for infrastructure routing. Omit to use the default routing for your plan. |
+| `plan` | string | No | Plan tier for infrastructure routing. Defaults to your account's plan when omitted. |
 
 ### Credentials
 
