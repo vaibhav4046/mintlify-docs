@@ -218,6 +218,13 @@ Also send `API-Version: 2` on raw HTTP requests. The official SDKs set the versi
 
 Tenant creation is asynchronous. After `POST /tenants`, poll [`GET /tenants/status`](/api-reference/v2/endpoint/tenant-status) until `infra.scheduler_status`, `infra.graph_status`, `infra.vectorstore_status.knowledge`, and `infra.vectorstore_status.memories` are all `true`.
 
+### 404 vs 500 on tenant lookup
+
+When a request fails during tenant resolution:
+
+- **404** (`TENANT_NOT_FOUND`) means the tenant does not exist. Do not retry; verify the `tenant_id` or create the tenant first.
+- **500** (`INTERNAL_ERROR`) means the lookup itself failed (for example, a transient database timeout). Retry with exponential backoff.
+
 ### Ingestion validation errors
 
 Common causes:

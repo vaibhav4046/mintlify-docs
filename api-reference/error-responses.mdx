@@ -457,6 +457,13 @@ for item in response.results:
 
 Tenant creation is asynchronous. Poll [`GET /tenants/infra/status`](/api-reference/endpoint/infra-status) until `infra.scheduler_status`, `infra.graph_status`, and **both** elements of `infra.vectorstore_status` are `true` before ingesting. Allow up to 5 minutes (Enterprise plans take longer than Free/Ship).
 
+### 404 vs 500 on tenant lookup
+
+When a request fails during tenant resolution:
+
+- **404** (`TENANT_NOT_FOUND`) means the tenant does not exist. Do not retry; verify the `tenant_id` or create the tenant first.
+- **500** (`INTERNAL_ERROR`) means the lookup itself failed (for example, a transient database timeout). Retry with exponential backoff.
+
 ### 422 Validation Error on ingestion
 
 Common causes:
