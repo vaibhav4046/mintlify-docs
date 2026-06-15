@@ -145,6 +145,17 @@ For detailed parameters, valid data types, shorthand flags, and comprehensive co
 
 ---
 
+## Schema persistence failures
+
+When you create a tenant **with a custom `tenant_metadata_schema`**, HydraDB persists a search-field cache that backs custom-field filtering and search. If that step fails, the create is rolled back and returns `500`: the tenant is **not** created, and no background provisioning is scheduled. Creates without a custom schema are unaffected.
+
+You may see one of two `500` messages:
+
+- **`Failed to persist tenant metadata schema; tenant was not created. Retry the request.`** — The create was cleanly rolled back, so the previous attempt left nothing behind. Retry the same request.
+- **`Failed to persist tenant metadata schema and rollback failed; tenant may be in an inconsistent state. Contact support.`** — Both the save and its rollback failed, so the tenant ID may still be reserved. Don't retry blindly, since the next attempt may return `409 TENANT_ALREADY_EXISTS`. Contact support with your `meta.request_id`.
+
+---
+
 <div className="api-before-related-resources" />
 
 ## **Related Resources**

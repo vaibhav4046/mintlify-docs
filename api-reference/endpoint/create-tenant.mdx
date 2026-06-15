@@ -259,4 +259,9 @@ Only fields declared with `enable_match: true` are usable in `metadata_filters` 
 
 Common codes: `400 INVALID_PARAMETERS`, `409 TENANT_ALREADY_EXISTS`, `422 VALIDATION_ERROR`. See [Error Responses](/api-reference/error-responses) for the full list.
 
+When you create a tenant **with a custom `tenant_metadata_schema`**, HydraDB persists a search-field cache that backs custom-field filtering and search. If that step fails, the create is rolled back and returns `500`: the tenant is **not** created, and no background provisioning is scheduled. Creates without a custom schema are unaffected. Two distinct `500` messages can be returned:
+
+- **`Failed to persist tenant metadata schema; tenant was not created. Retry the request.`** — The create was cleanly rolled back, so the previous attempt left nothing behind. Retry the same request.
+- **`Failed to persist tenant metadata schema and rollback failed; tenant may be in an inconsistent state. Contact support.`** — Both the save and its rollback failed, so the tenant ID may still be reserved. Don't retry blindly, since the next attempt may return `409 TENANT_ALREADY_EXISTS`. Contact support with the response payload.
+
 Read more: [Essentials → Multi-Tenant Support](/essentials/multi-tenant) · [Essentials → Metadata](/essentials/metadata)
