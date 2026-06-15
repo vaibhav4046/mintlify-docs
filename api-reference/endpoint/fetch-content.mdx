@@ -114,4 +114,8 @@ Use `content` when you need to process the file inline.
 
 ## Errors
 
-Common codes: `400 INVALID_PARAMETERS`, `404 SOURCE_NOT_FOUND`, `422 VALIDATION_ERROR`. See [Error Responses](/api-reference/error-responses) for the full list.
+Common codes: `400 INVALID_PARAMETERS`, `404 SOURCE_NOT_FOUND`, `422 VALIDATION_ERROR`, `503 SOURCE_AVAILABILITY_ERROR`. See [Error Responses](/api-reference/error-responses) for the full list.
+
+<Note>
+**Transient availability errors.** A `503` with message "Unable to verify source availability right now, please retry" indicates a temporary failure while verifying the source exists. Retry with exponential backoff.
+</Note>

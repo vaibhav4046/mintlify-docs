@@ -226,5 +226,7 @@ Use `mode=url` when you need the original file. Use `mode=content` when you only
 - **Recently ingested sources:** Fetching immediately after ingestion may return a record before the parsed text is ready. For reliable reads, use [Ingestion Status](/api-reference/v2/endpoint/source-status) first.
 - **Presigned URL TTL:** The URL is valid only for `expiry_seconds`. Anyone with the URL can download the file during that window, so treat it as a short-lived secret.
 - **Memory items:** Fetching a memory's `id` returns its raw text content. There are no presigned URLs for memory items  -  `mode=url` and `mode=both` return `presigned_url: null`.
+- **Deleted content:** Fetching a source that has been deleted returns `404 SOURCE_NOT_FOUND` immediately.
+- **Transient availability errors:** A `503` with message "Unable to verify source availability right now, please retry" indicates a temporary failure while verifying the source exists. Retry with exponential backoff.
 
 <div className="api-before-related-resources" />

@@ -238,6 +238,8 @@ Service temporarily unavailable, often during deployments or under high load.
 
 **How to handle:** Retry with exponential backoff. Most 503s resolve within seconds.
 
+**Source availability errors:** When fetching content, a `503` with message "Unable to verify source availability right now, please retry" indicates the system cannot verify whether the source exists. This is a transient error — retry with exponential backoff.
+
 ---
 
 ## Endpoint-specific error codes

@@ -65,6 +65,7 @@ Use `error.code` for branching and log `meta.request_id` for every failed reques
 | `RATE_LIMITED` | `429` | The API key exceeded its current rate limit. |
 | `INTERNAL_ERROR` | `500` | HydraDB hit an unexpected server-side error. |
 | `SERVICE_UNAVAILABLE` | `503` | A dependency is temporarily unavailable or the service is under load. |
+| `SOURCE_AVAILABILITY_ERROR` | `503` | The system could not verify whether the source exists. Retry with backoff. |
 
 <Note>
 Endpoint pages list the most common codes for that operation. New codes may be added over time, so clients should handle unknown `error.code` values gracefully.
