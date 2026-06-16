@@ -20,6 +20,12 @@ Remove a resource when you no longer want to sync data from it. For example, sto
 curl -X DELETE 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/resources/C01ABC123' \
   -H "Authorization: Bearer $HYDRADB_API_KEY"
 ```
+
+```bash Slash in resource ID
+# GitHub repositories and Gmail mailboxes use resource IDs that contain slashes
+curl -X DELETE 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-446655440000/resources/octocat/hello-world' \
+  -H "Authorization: Bearer $HYDRADB_API_KEY"
+```
 </CodeGroup>
 
 ## Path parameters
@@ -27,7 +33,7 @@ curl -X DELETE 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-44
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `id` | string | Yes | The connector ID |
-| `resource_id` | string | Yes | The resource ID to delete |
+| `resource_id` | string | Yes | The resource ID to delete. Resource IDs that contain slashes (such as GitHub `owner/repo` or Gmail `[Gmail]/Sent Mail`) are passed in full and do not need to be encoded. |
 
 ## Response
 
@@ -53,6 +59,10 @@ curl -X DELETE 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-44
 
 <Info>
 **The resource can be re-added.** If you delete and re-create a resource, the next sync will use the default lookback window since the cursor is lost.
+</Info>
+
+<Info>
+**Resource IDs containing slashes are supported.** Some providers return resource IDs with slashes, such as GitHub repositories (`owner/repo`) or Gmail mailboxes (`[Gmail]/Sent Mail`). Pass the full resource ID exactly as returned by discover or list; you don't need to encode the slashes.
 </Info>
 
 ## Errors
