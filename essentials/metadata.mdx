@@ -169,7 +169,7 @@ HydraDB validates metadata at ingestion and rejects requests exceeding these lim
 | Constraint | Limit | Error |
 |---|---|---|
 | Key length | 1,024 characters | `metadata key "..." exceeds the maximum length of 1024` |
-| Value size | 65,535 bytes (JSON-encoded) | `metadata value at "..." is N bytes, exceeding the maximum of 65535` |
+| Value size | 32,767 bytes (JSON-encoded, per top-level value) | `metadata value at "..." is N bytes, exceeding the maximum of 32767` |
 | Nesting depth | 2 levels | `unsupported metadata value at "...": maximum nesting depth is 2` |
 | Non-finite floats | Not allowed | `unsupported metadata value at "...": non-finite float` |
 
@@ -188,7 +188,7 @@ Nesting depth applies to containers (arrays and objects) below each top-level ke
 }
 ```
 
-These constraints apply to both `metadata` and `additional_metadata` fields across all ingestion endpoints: memory ingest, memory add, and knowledge upload.
+These limits apply to both the `metadata` and `additional_metadata` fields when you add memories or upload knowledge. For app knowledge, the same checks run on `tenant_metadata` and `document_metadata`; `app_metadata` is not validated. If metadata is invalid, the request returns `400 INVALID_INPUT` and nothing is enqueued for processing.
 
 ### Metadata filtering vs `sub_tenant_id`
 
