@@ -1,0 +1,69 @@
+---
+title: "Organization Configuration"
+description: "Configure the organization ID for on-premises HydraDB server deployments"
+---
+
+HydraDB scopes tenants, data, and API keys by organization, so it resolves an organization ID for every request. How that ID is resolved depends on whether the server runs as a cloud or on-premises deployment.
+
+## Org ID Resolution
+
+- **Cloud deployments** derive the organization ID from the authenticated user. If the user's session has an active workspace org, that org is used; otherwise the ID is derived from the user ID.
+- **On-premises deployments** use a single fixed organization ID from the `ORG` environment variable. This value overrides any org stored on an API key or session, so every request in the deployment resolves to the same organization.
+
+## Required Environment Variables
+
+On-premises server deployments require these environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `ON_PREM_DEPLOYMENTS` | Set to `true` to run the server in on-premises mode. |
+| `ORG` | The fixed organization ID for the deployment. Required when `ON_PREM_DEPLOYMENTS=true`. |
+
+<Warning>
+When `ON_PREM_DEPLOYMENTS=true`, the server validates `ORG` at startup and exits if it is missing, empty, or whitespace-only:
+
+```
+ORG must be set when ON_PREM_DEPLOYMENTS=true
+```
+
+Set `ORG` to a non-empty value and restart. Leave `ORG` unset for cloud deployments.
+</Warning>
+
+## Configuration Examples
+
+### Environment Variables
+
+```bash
+ON_PREM_DEPLOYMENTS=true
+ORG=your-organization-id
+```
+
+### Docker Compose
+
+```yaml
+services:
+  hydradb:
+    image: hydradb/application:latest
+    environment:
+      ON_PREM_DEPLOYMENTS: "true"
+      ORG: your-organization-id
+```
+
+### Kubernetes
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydradb
+spec:
+  template:
+    spec:
+      containers:
+        - name: hydradb
+          env:
+            - name: ON_PREM_DEPLOYMENTS
+              value: "true"
+            - name: ORG
+              value: "your-organization-id"
+```
