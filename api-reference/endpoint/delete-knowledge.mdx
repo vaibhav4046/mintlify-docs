@@ -101,6 +101,10 @@ response = client.data.delete(
 **Cascade scope.** Deleting a knowledge source removes its chunks, embeddings, and any graph entities/relations exclusively associated with it. Entities shared with other sources are retained.
 </Info>
 
+<Info>
+**Cleanup failures are retryable.** Deleting a source also clears its embeddings, graph entities, stored files, and indexing status. If that downstream cleanup fails, the source is left intact and the request returns `success: false`, `deleted_count: 0`, and `message: "Source deletion cleanup failed; retry deletion"`, with the same error on each affected entry in `results[]`. Because deletion is idempotent, re-sending the same request finishes any remaining cleanup and succeeds once everything is gone.
+</Info>
+
 ## Related endpoints
 
 - **Browse before deleting:** [List data](/api-reference/endpoint/list-data) – confirm what you're about to remove

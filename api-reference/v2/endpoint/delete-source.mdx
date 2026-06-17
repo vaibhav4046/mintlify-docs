@@ -76,6 +76,26 @@ curl -X DELETE 'https://api.hydradb.com/context' \
 }
 ```
 
+```json Cleanup failed (retry)
+{
+  "success": true,
+  "data": {
+    "success": false,
+    "message": "Source deletion cleanup failed; retry deletion",
+    "results": [
+      { "id": "policy_main", "deleted": false, "error": "Source deletion cleanup failed; retry deletion" },
+      { "id": "runbook_deploy", "deleted": false, "error": "Source deletion cleanup failed; retry deletion" }
+    ],
+    "deleted_count": 0
+  },
+  "error": null,
+  "meta": {
+    "request_id": "9d13aef4-02f4-4e73-8c62-4c2601d04f9d",
+    "latency_ms": 31.7
+  }
+}
+```
+
 </ResponseExample>
 
 ### Memory deletion 
@@ -156,6 +176,7 @@ curl -X DELETE 'https://api.hydradb.com/context' \
 ## Some additional notes
 
 - **Partial-success semantics:** For `type=knowledge`, each ID is reported independently in `results[]`. A failure on one ID does not stop the rest. For `type=memory`, the response reports an aggregate `user_memory_deleted` reflecting _all_ listed IDs.
+- **Cleanup failures are safely retryable:** Deleting a knowledge source also clears its vectors, graph entities, stored files, and indexing status. If any of that downstream cleanup fails, HydraDB keeps the source intact instead of reporting a partial success — the response returns `success: false`, `deleted_count: 0`, and the message `Source deletion cleanup failed; retry deletion`, with that same error on each affected entry in `results[]`. Re-send the same request to retry; deletion is idempotent, so a retry finishes any remaining cleanup and succeeds once everything is gone.
 - **Retrieval drops the source immediately:** Even before background cleanup finishes, deleted IDs disappear from `/query` and `/context/list` responses.
 - **Mixed deletes need two calls:** To delete both knowledge and memory items, send two requests  -  one with `type=knowledge`, one with `type=memory`.
 
