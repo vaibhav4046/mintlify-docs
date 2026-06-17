@@ -806,6 +806,8 @@ On the first sync, HydraDB fetches data from the last 30 days by default. You ca
 
 After the initial sync, HydraDB tracks a cursor for each resource. Subsequent syncs fetch only new or updated records since the last run.
 
+This holds even when the first sync returns no records. If a resource has no activity within its lookback window (for example, an inactive GitHub repository), HydraDB still advances the cursor to the sync time. Later syncs then pick up only new activity instead of re-scanning the full lookback window each time.
+
 ### Reconfiguring resources
 
 Reconfiguring an existing resource updates its settings without resetting its cursor. Sync progress is preserved, so records you've already synced aren't re-ingested.
