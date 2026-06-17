@@ -84,6 +84,10 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-4466
 **Shared lookback applies to all resources.** The `lookback_days` value is applied to every resource in the request. For per-resource control, use [Create Resource](/api-reference/endpoint/create-connector-resource) instead.
 </Info>
 
+<Info>
+**Reconfiguring is safe to repeat.** If a resource in the request already exists, configure updates its settings in place and preserves its sync cursor instead of recreating it. Reconfiguring won't reset sync progress or re-ingest data you've already synced.
+</Info>
+
 ## Errors
 
 | Code | Meaning |

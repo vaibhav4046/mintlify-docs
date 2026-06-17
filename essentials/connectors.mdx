@@ -806,6 +806,10 @@ On the first sync, HydraDB fetches data from the last 30 days by default. You ca
 
 After the initial sync, HydraDB tracks a cursor for each resource. Subsequent syncs fetch only new or updated records since the last run.
 
+### Reconfiguring resources
+
+Reconfiguring an existing resource updates its settings without resetting its cursor. Sync progress is preserved, so records you've already synced aren't re-ingested.
+
 ### Sync interval
 
 The default sync interval is 30 minutes. You can set a custom interval (in seconds) when creating the connector:
