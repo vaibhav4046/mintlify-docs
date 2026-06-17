@@ -810,6 +810,8 @@ After the initial sync, HydraDB tracks a cursor for each resource. Subsequent sy
 
 Reconfiguring an existing resource updates its settings without resetting its cursor. Sync progress is preserved, so records you've already synced aren't re-ingested.
 
+If you extend a resource's history window while a background backfill is still running, the new window takes effect reliably. The updated backfill target is preserved even if the in-flight backfill finishes at the same time.
+
 ### Sync interval
 
 The default sync interval is 30 minutes. You can set a custom interval (in seconds) when creating the connector:

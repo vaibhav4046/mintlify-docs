@@ -88,6 +88,10 @@ curl -X POST 'https://api.hydradb.com/v2/connectors/550e8400-e29b-41d4-a716-4466
 **Reconfiguring is safe to repeat.** If a resource in the request already exists, configure updates its settings in place and preserves its sync cursor instead of recreating it. Reconfiguring won't reset sync progress or re-ingest data you've already synced.
 </Info>
 
+<Info>
+**Extending the lookback window is safe during a backfill.** If you reconfigure a resource with a larger `lookback_days` while a backfill is still running, the new history window takes effect reliably and won't be lost to the in-flight backfill.
+</Info>
+
 ## Errors
 
 | Code | Meaning |
